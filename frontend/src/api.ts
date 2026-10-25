@@ -241,6 +241,19 @@ function query(params: Record<string, string | number | undefined>): string {
   return s ? `?${s}` : "";
 }
 
+export interface Explanation {
+  plan_rank: number;
+  text: string;
+  source: "local_model" | "template";
+  model: string | null;
+  note: string | null;
+  facts: Record<string, unknown>;
+}
+
+export function getExplanation(teamId: number, horizon: number, plan: number): Promise<Explanation> {
+  return request(`/recommendations/${teamId}/explanation${query({ horizon, plan })}`);
+}
+
 export function getRecommendations(teamId: number, horizon: number): Promise<Recommendations> {
   return request(`/recommendations/${teamId}${query({ horizon })}`);
 }

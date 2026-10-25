@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getRecommendations, type ChipAdvice, type GameweekRecommendation, type MovePlan, type RecommendedPlan } from "../api";
+import { getExplanation, getRecommendations, type ChipAdvice, type GameweekRecommendation, type MovePlan, type RecommendedPlan } from "../api";
 import { money } from "../format";
 import { useData } from "../hooks";
 import { Card } from "./Card";
@@ -146,6 +146,33 @@ function LaterGameweeks({ plan }: { plan: RecommendedPlan }) {
   );
 }
 
+function Why({ teamId, horizon, rank }: { teamId: number; horizon: number; rank: number }) {
+  const { data, error, loading } = useData(() => getExplanation(teamId, horizon, rank), [teamId, horizon, rank]);
+  return (
+    <div className="mb-3 rounded-lg bg-slate-50 p-3 text-sm dark:bg-slate-800/60">
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Why</span>
+        {data && (
+          <span
+            className="text-[11px] text-slate-500 dark:text-slate-400"
+            title="Written only from the plan's facts; every number is checked against them before it's shown."
+          >
+            {data.source === "local_model" ? `Written by a local model (${data.model})` : "Written from the plan's facts"}
+          </span>
+        )}
+      </div>
+      {loading && <p className="text-slate-500 dark:text-slate-400">Writing the explanation…</p>}
+      {error && <p className="text-red-700 dark:text-red-400">{error}</p>}
+      {data && !loading && (
+        <>
+          <p className="leading-relaxed">{data.text}</p>
+          {data.note && <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">{data.note}</p>}
+        </>
+      )}
+    </div>
+  );
+}
+
 function ChipsAdvice({ chips }: { chips: ChipAdvice[] }) {
   if (chips.length === 0) return null;
   const play = (c: ChipAdvice) => c.play_in_gameweek != null;
@@ -229,6 +256,7 @@ export function RecommendationsPanel({ teamId, refreshKey }: { teamId: number; r
           {plan && (
             <>
               <h3 className="mb-2 font-semibold">{plan.headline}</h3>
+              <Why teamId={teamId} horizon={horizon} rank={plan.rank} />
               <FirstGameweek gw={plan.gameweeks[0]} gameweeks={data.gameweeks} />
               <LaterGameweeks plan={plan} />
             </>

@@ -25,6 +25,7 @@ The system is split into a **prediction brain** (how many points will each playe
 - A scheduled ingest stores players, teams, gameweeks and fixtures, plus a daily price snapshot for price trends.
 - **Recommendations** (`GET /recommendations/{team_id}?horizon=5`): an integer linear program (HiGHS) plans transfers, hits, captain, starting XI, bench and **chip timing** (Wildcard, Free Hit, Triple Captain, Bench Boost) over the next 1 to 8 gameweeks. It returns the best plan and an alternative, each with its expected gain over doing nothing and the facts behind every move, plus play-or-save advice for every chip still held.
 - **Predictions** come from a transparent baseline: form and season scoring rate, × fixture difficulty, × availability (including return dates parsed from injury news). They sit behind one `XPMatrix` interface, so the Stage 3 model can replace them without touching anything else.
+- **Explanations** (`GET /recommendations/{team_id}/explanation`): a few plain-English sentences on why, written only from the plan's facts by a **local** language model (Ollama, no API key or per-use cost) or by templates. Every number is checked against the facts in code before it's shown; a draft that fails falls back to the template.
 - **Dashboard views:** player list with prices, price changes and xP (`/players`); fixture difficulty ticker (`/fdr`); best captains (`/captaincy`); best players for the coming fixtures (`/picks/best-by-fixtures`).
 
 ## Run it locally
@@ -50,6 +51,8 @@ npm install
 npm run dev
 ```
 
+**Optional: local language model for explanations.** Install [Ollama](https://ollama.com), pull a small instruction model (for example `ollama pull llama3.2:3b`), and start the API with `FPLAI_LOCAL_MODEL=llama3.2:3b`. Without it, explanations come from templates.
+
 Open http://localhost:5173 and enter a team ID: it's the number in the address of your FPL Points page. The API docs are at http://localhost:8000/docs.
 
 Tests: `cd backend && .venv/Scripts/pytest`.
@@ -63,6 +66,7 @@ backend/app/
   manager/    ManagerState, its builder, and the free-transfer / chip / selling-price derivations
   prediction/ the prediction brain: XPMatrix interface + the baseline predictor
   optimization/ the optimization brain: the ILP solver and plan building
+  explanation/ the explanation layer: facts, templates, local model, number check
   insights.py dashboard views (player list, fixture ticker)
   db/         tables (SQLAlchemy); migrations in backend/migrations (Alembic)
   ingest/     scheduled refresh + daily price snapshot (python -m app.ingest.run)

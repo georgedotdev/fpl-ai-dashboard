@@ -229,3 +229,26 @@ The full cost applies while 4 or more gameweeks of the window remain after the w
 - **Not playable in this horizon.**
 
 **Limits.** A Wildcard's benefit lasts beyond the horizon, so a 5-week view undervalues it. The planner mostly recommends one when a squad is badly broken or the window is closing.
+
+---
+
+## D-014: Explanation layer: a local language model, with templates as the floor
+
+- **Date:** 2026-10-25
+- **Status:** Decided by the owner (closes spec §8.5)
+
+**Decision.**
+- **Writers:** explanations are written by a language model that runs locally under Ollama (configured with `FPLAI_LOCAL_MODEL`), or, when none is configured or it fails, by a deterministic template writer. No hosted LLM API is used.
+- **What the writer sees:** only the chosen plan's facts (`app/explanation/facts.py`): moves, expected points, prices, availability and news, fixture counts, bank, hits, chip, captain. The values are pre-formatted, so nothing downstream computes anything.
+- **Checked in code before anything is shown:** every number in the text must appear in the facts, every player moved must be named, and the length is capped. A model draft that fails is replaced by the template text, and the response says why.
+- **Served separately:** explanations come from `GET /recommendations/{team_id}/explanation`, so the plan shows straight away and the explanation fills in after.
+
+**Why.** The owner doesn't want other users spending their API tokens, and wants the AI to be their own. The checks turn the spec's rule ("the language model explains; it never decides or invents a number") into code instead of a prompt instruction. Templates keep the demo working on any host with no model at all.
+
+**Alternatives considered.**
+- A hosted model (Claude Haiku/Sonnet/Opus). About $0.0005–$0.02 per explanation; turned down for third-party token cost and dependency.
+- Training a language model from scratch. Without very large text corpora and GPU time it would only learn to copy the templates.
+
+**Next.** Fine-tune the small local model on fact→explanation pairs (LoRA on a free GPU) as a "trained it myself" piece, after Stage 3. Hosting a model live needs a server with about 4–6 GB of RAM, so the cheap hosted demo serves templates unless that's paid for.
+
+**Limits.** The number check catches digits, not numbers written as words ("three"). Templates read mechanically.

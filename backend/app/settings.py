@@ -25,6 +25,12 @@ class Settings(BaseSettings):
     default_horizon: int = 5
     max_horizon: int = 8
 
+    # Explanation layer (D-014): a local language model served by Ollama, if one is set;
+    # otherwise explanations come from the template writer. No API keys either way.
+    local_model: str | None = None  # an Ollama model name, e.g. one you've pulled with `ollama pull`
+    ollama_url: str = "http://localhost:11434"
+    local_model_timeout_s: float = 30.0
+
     @field_validator("database_url")
     @classmethod
     def _use_psycopg_driver(cls, url: str) -> str:

@@ -33,6 +33,7 @@ class PlayerFacts(BaseModel):
     status: str
     news: str
     fixtures: list[list[str]]  # per planning gameweek, e.g. [["MCI (H)"], []] for a blank
+    fixture_difficulty: list[list[int]]  # FPL's 1-5 rating for each of those fixtures
 
 
 class MovePlan(BaseModel):
@@ -47,6 +48,7 @@ class PickedPlayer(BaseModel):
     position: str
     team_short_name: str
     xp: float
+    fixtures: list[str]  # this gameweek's fixtures, e.g. ["BHA (H)"]
 
 
 class GameweekRecommendation(BaseModel):
@@ -176,6 +178,7 @@ def recommend(
                 [f"{game.teams[f.opponent].short_name} ({'H' if f.home else 'A'})" for f in game.team_fixtures(e.team, gw)]
                 for gw in xp.gameweeks
             ],
+            fixture_difficulty=[[f.difficulty for f in game.team_fixtures(e.team, gw)] for gw in xp.gameweeks],
         )
 
     def picked(pid: int, t: int) -> PickedPlayer:
@@ -183,6 +186,10 @@ def recommend(
         return PickedPlayer(
             player_id=pid, web_name=e.web_name, position=by_id[pid].position,
             team_short_name=game.teams[e.team].short_name, xp=by_id[pid].xp[t],
+            fixtures=[
+                f"{game.teams[f.opponent].short_name} ({'H' if f.home else 'A'})"
+                for f in game.team_fixtures(e.team, xp.gameweeks[t])
+            ],
         )
 
     out = []

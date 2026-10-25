@@ -13,6 +13,8 @@ from sqlalchemy.orm import Session
 
 from app.db import get_session
 from app.db.models import IngestRunRow
+from app.explanation import Explanation, explain
+from app.explanation.local_model import OllamaExplainer
 from app.fpl import FPLClient, FPLError, FPLNotFound
 from app.game import GameData
 from app.insights import PlayerSummary, TeamTicker, fixture_ticker, player_summaries
@@ -223,6 +225,10 @@ def get_recommendations(
     predictor: PredictorDep,
     horizon: Horizon = settings.default_horizon,
 ) -> Recommendations:
+    return _recommendations(team_id, client, rules, session, game, predictor, horizon)
+
+
+def _recommendations(team_id, client, rules, session, game, predictor, horizon) -> Recommendations:
     state = _state(client, rules, session, team_id)
     xp = _predict(game, predictor, horizon)
     key = hashlib.sha256((state.model_dump_json() + xp.model_dump_json()).encode()).hexdigest()
@@ -236,4 +242,46 @@ def get_recommendations(
     if len(_recommendation_cache) > 256:
         _recommendation_cache.clear()
     _recommendation_cache[key] = (time.monotonic() + RECOMMENDATION_TTL_S, result)
+    return result
+
+
+# --- explanations ----------------------------------------------------------------------
+
+
+@lru_cache
+def get_local_explainer() -> OllamaExplainer | None:
+    """The local language model, if one is configured (FPLAI_LOCAL_MODEL); else templates only."""
+    if not settings.local_model:
+        return None
+    return OllamaExplainer(settings.ollama_url, settings.local_model, settings.local_model_timeout_s)
+
+
+_explanation_cache: dict[str, Explanation] = {}
+
+
+@app.get("/recommendations/{team_id}/explanation")
+def get_explanation(
+    team_id: TeamId,
+    client: ClientDep,
+    rules: RulesDep,
+    session: SessionDep,
+    game: GameDep,
+    predictor: PredictorDep,
+    local: Annotated[OllamaExplainer | None, Depends(get_local_explainer)],
+    horizon: Horizon = settings.default_horizon,
+    plan: Annotated[int, Query(ge=1, description="Which plan to explain, by rank")] = 1,
+) -> Explanation:
+    """Plain-English reasons for a recommended plan, written only from that plan's facts."""
+    recs = _recommendations(team_id, client, rules, session, game, predictor, horizon)
+    chosen = next((p for p in recs.plans if p.rank == plan), None)
+    if chosen is None:
+        raise HTTPException(404, f"There is no plan {plan}; this team has {len(recs.plans)}.")
+    key = hashlib.sha256((chosen.model_dump_json() + str(local and local.model)).encode()).hexdigest()
+    if key in _explanation_cache:
+        return _explanation_cache[key]
+    result = explain(recs, chosen, local)
+    if result.note is None:  # don't keep a fallback: the local model may be back next time
+        if len(_explanation_cache) > 512:
+            _explanation_cache.clear()
+        _explanation_cache[key] = result
     return result

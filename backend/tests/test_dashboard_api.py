@@ -76,3 +76,15 @@ def test_recommendations_include_advice_for_every_chip_held(api):  # noqa: F811
     # Second-half chips open in GW20, outside GW9-11
     assert chips[("wildcard", 2)]["advice"].startswith("Not playable")
     assert all(gw["chip"] is None for gw in body["plans"][0]["gameweeks"])
+
+
+def test_explanation_endpoint_uses_templates_without_a_local_model(api):  # noqa: F811
+    from app.main import app, get_local_explainer
+
+    client, _ = api
+    app.dependency_overrides[get_local_explainer] = lambda: None
+    body = client.get("/recommendations/42/explanation?horizon=2").json()
+    assert body["plan_rank"] == 1 and body["source"] == "template" and body["model"] is None
+    assert "Captain" in body["text"]
+    assert body["facts"]["planning_window"] == "GW9-GW10"
+    assert client.get("/recommendations/42/explanation?horizon=2&plan=9").status_code == 404
