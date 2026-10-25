@@ -1,0 +1,97 @@
+import type { Position, SquadPlayer } from "../api";
+import { STATUS_LABELS, money } from "../format";
+
+const POSITION_ORDER: Position[] = ["GKP", "DEF", "MID", "FWD"];
+
+const STATUS_STYLES: Record<string, string> = {
+  d: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
+  i: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300",
+  s: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300",
+  u: "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+  n: "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+};
+
+function Availability({ player }: { player: SquadPlayer }) {
+  if (player.status === "a") return null;
+  const chance = player.chance_of_playing_next_round;
+  return (
+    <span
+      title={player.news || undefined}
+      className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${STATUS_STYLES[player.status] ?? STATUS_STYLES.u}`}
+    >
+      {STATUS_LABELS[player.status] ?? player.status}
+      {chance != null ? ` · ${chance}%` : ""}
+    </span>
+  );
+}
+
+function PlayerRow({ player }: { player: SquadPlayer }) {
+  const sell = player.selling_price;
+  const changed = sell.value !== player.now_cost;
+  return (
+    <li className="flex items-center gap-3 py-2">
+      <span className="w-9 shrink-0 text-xs font-medium text-slate-400">{player.position}</span>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="truncate font-medium">{player.web_name}</span>
+          {player.is_captain && (
+            <span className="rounded-full bg-slate-900 px-1.5 text-[11px] font-bold text-white dark:bg-white dark:text-slate-900">
+              C
+            </span>
+          )}
+          {player.is_vice_captain && (
+            <span className="rounded-full border border-slate-400 px-1.5 text-[11px] font-bold text-slate-600 dark:text-slate-300">
+              V
+            </span>
+          )}
+          <Availability player={player} />
+        </div>
+        <div className="text-xs text-slate-500 dark:text-slate-400">
+          {player.team_short_name}
+          {player.news && player.status !== "a" ? ` · ${player.news}` : ""}
+        </div>
+      </div>
+      <div className="shrink-0 text-right tabular-nums">
+        <div className="text-sm font-medium">{money(player.now_cost)}</div>
+        <div
+          className={`text-xs ${changed ? "text-amber-700 dark:text-amber-400" : "text-slate-500 dark:text-slate-400"}`}
+          title={[sell.note, player.purchase_price.note].filter(Boolean).join(" ")}
+        >
+          sells ~{money(sell.value)}
+        </div>
+      </div>
+    </li>
+  );
+}
+
+export function Squad({ squad }: { squad: SquadPlayer[] }) {
+  const starters = squad
+    .filter((p) => p.bench_order == null)
+    .sort((a, b) => POSITION_ORDER.indexOf(a.position) - POSITION_ORDER.indexOf(b.position) || a.slot - b.slot);
+  const bench = squad.filter((p) => p.bench_order != null).sort((a, b) => a.bench_order! - b.bench_order!);
+
+  return (
+    <div className="grid gap-x-8 lg:grid-cols-[2fr_1fr]">
+      <div>
+        <h3 className="text-xs font-medium text-slate-500 dark:text-slate-400">Starting XI</h3>
+        <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+          {starters.map((p) => (
+            <PlayerRow key={p.player_id} player={p} />
+          ))}
+        </ul>
+      </div>
+      <div className="mt-4 lg:mt-0">
+        <h3 className="text-xs font-medium text-slate-500 dark:text-slate-400">Bench (substitution order)</h3>
+        <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+          {bench.map((p) => (
+            <PlayerRow key={p.player_id} player={p} />
+          ))}
+        </ul>
+        <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+          "Sells ~" is our estimate: FPL only shows exact selling prices when you're logged in. It's your purchase
+          price plus half of any rise, rounded down. Price falls are passed on in full.
+        </p>
+      </div>
+    </div>
+  );
+}

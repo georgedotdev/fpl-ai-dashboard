@@ -1,0 +1,96 @@
+# FPL game rules for the 2026/27 season.
+#
+# Nothing in the code hard-codes a game rule: it all comes from this file. FPL changes the
+# rules most summers, so copy this file for each new season and re-verify every value.
+# Values the live API also exposes are cross-checked at startup (see app/rules/checks.py).
+# Money is in tenths of £1m, as FPL sends it.
+
+season = "2026/27"
+verified_on = "2026-10-25"
+
+[squad]
+budget = 1000
+size = 15
+max_per_club = 3
+starting_size = 11
+positions = { GKP = 2, DEF = 5, MID = 5, FWD = 3 }
+starting_min = { GKP = 1, DEF = 3, MID = 2, FWD = 1 }
+starting_max = { GKP = 1, DEF = 5, MID = 5, FWD = 3 }
+
+[transfers]
+free_per_gameweek = 1
+max_banked = 5
+hit_cost = 4
+# Selling price = purchase price + this share of any rise, rounded down to £0.1m.
+sell_on_fee = 0.5
+# Gameweek -> extra free transfers granted at that gameweek (2025/26 had AFCON extras;
+# 2026/27 has none). Keys are strings because TOML keys must be.
+extra_free_transfers = {}
+
+[transfers.chip_weeks]
+# Playing a Wildcard or Free Hit doesn't wipe banked free transfers (current behaviour).
+preserve_banked = true
+# RE-VERIFY: whether the usual +1 free transfer still arrives after a Wildcard/Free Hit week.
+# The derivation in app/manager/free_transfers.py follows this flag and says so in its note.
+gains_free_transfer = true
+
+[chips]
+# The two halves' windows (start..end gameweek, inclusive). The live API's
+# bootstrap-static `chips` list takes precedence; this is the fallback if it's missing.
+labels = { wildcard = "Wildcard", freehit = "Free Hit", bboost = "Bench Boost", "3xc" = "Triple Captain" }
+max_per_gameweek = 1
+# A chip listed here can't be played in two consecutive gameweeks, e.g. Free Hit in GW19
+# (first half) and again in GW20 (second half).
+no_back_to_back = ["freehit"]
+# Chips during which transfers are unlimited and cost no free transfers.
+free_transfer_chips = ["wildcard", "freehit"]
+# Chips after which the squad (and bank) revert to how they were before the gameweek.
+reverting_chips = ["freehit"]
+
+[[chips.windows]]
+name = "wildcard"
+half = 1
+start = 2
+end = 19
+
+[[chips.windows]]
+name = "freehit"
+half = 1
+start = 2
+end = 19
+
+[[chips.windows]]
+name = "bboost"
+half = 1
+start = 1
+end = 19
+
+[[chips.windows]]
+name = "3xc"
+half = 1
+start = 1
+end = 19
+
+[[chips.windows]]
+name = "wildcard"
+half = 2
+start = 20
+end = 38
+
+[[chips.windows]]
+name = "freehit"
+half = 2
+start = 20
+end = 38
+
+[[chips.windows]]
+name = "bboost"
+half = 2
+start = 20
+end = 38
+
+[[chips.windows]]
+name = "3xc"
+half = 2
+start = 20
+end = 38
