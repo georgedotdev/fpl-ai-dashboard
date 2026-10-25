@@ -187,8 +187,45 @@ FPL's recorded hit charge for each gameweek is used as a check. If FPL charged a
 - Each free transfer still banked at the end of the horizon is worth 1.5 points; without this, the plan would spend every transfer in the last week on tiny gains.
 - The candidate pool is owned players, plus the best 6 GKP / 15 DEF / 15 MID / 10 FWD by discounted xP, plus the 3 cheapest available per position. On live data, widening DEF/MID to 25 gave the identical plan at twice the solve time.
 - Prices are assumed constant over the horizon.
-- Alternative plans are found by forbidding the previous plans' first-week purchases and solving again. A "no transfers" solve gives each plan's expected gain.
+- One alternative plan is found by forbidding the best plan's first-week purchases and solving again (two alternatives made a cold request too slow). A "no transfers, no chips" solve gives each plan's expected gain.
 - Vice-captain and bench order are chosen after the solve, by expected points.
-- Results are cached for 10 minutes per identical input. A cold request takes about 6 s; a cached one 0.25 s.
+- Results are cached for 10 minutes per identical input. A cold request takes about 5–6 s; a cached one 0.25 s.
 
-**Not yet (rest of Stage 2):** chip timing (Wildcard, Free Hit, Triple Captain, Bench Boost). The plan is to compare "play it this week" against "save it" scenarios, as the spec suggests.
+---
+
+## D-013: Chip timing inside the optimizer, with an opportunity cost
+
+- **Date:** 2026-10-25
+- **Status:** Decided. The par values are hand-set defaults, not fitted.
+
+**Decision.** Chips are decision variables in the same integer program as transfers, not a separate scenario loop:
+
+- **Triple Captain:** the captain's points count once more.
+- **Bench Boost:** the bench's points count in full.
+- **Wildcard:** that week's transfers are free and banked free transfers are untouched.
+- **Free Hit:** that week gets its own squad (same budget, same squad and club rules), and the base squad is frozen and returns the week after.
+
+The rules that limit chips come from `season_rules`: each chip's window, at most one chip per gameweek, and no back-to-back Free Hits. Which chip behaves how is also config (`free_transfer_chips`, `reverting_chips`, `captain_bonus_chips`, `bench_boost_chips`).
+
+**Opportunity cost.** Inside a 5-week horizon any chip gain looks free, so without a counterweight the solver would play every chip at once. Playing a chip therefore costs its *par* value, roughly what it's worth if saved for a good week later in its window:
+
+| Chip | Par (xP) |
+|---|---|
+| Triple Captain | 12 |
+| Bench Boost | 12 |
+| Free Hit | 12 |
+| Wildcard | 20 |
+
+The full cost applies while 4 or more gameweeks of the window remain after the week; it shrinks linearly to 0 in the window's last gameweek. So a chip about to expire is used rather than wasted.
+
+**Why scenarios weren't used.** The spec suggested comparing "play this week" against "save it". That's what the opportunity cost does, inside one solve instead of one solve per chip per week (20 solves was far too slow).
+
+**Tuning note.** With a Triple Captain par of 10, the solver played it on an ordinary single gameweek (the best captain was worth 10.1 xP). Saved Triple Captains usually land on double gameweeks, so the par was raised to 12.
+
+**Output.** Every chip still held gets one line of advice:
+
+- **Play it this week / in GWx:** shown with its expected gain. For Triple Captain and Bench Boost the gain is computed directly; for Wildcard and Free Hit it's computed by re-solving without the chip.
+- **Save it.**
+- **Not playable in this horizon.**
+
+**Limits.** A Wildcard's benefit lasts beyond the horizon, so a 5-week view undervalues it. The planner mostly recommends one when a squad is badly broken or the window is closing.

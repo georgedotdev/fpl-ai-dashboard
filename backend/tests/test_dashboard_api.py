@@ -62,3 +62,17 @@ def test_recommendations_are_consistent(api, horizon):  # noqa: F811
 def test_recommendations_reject_a_silly_horizon(api):  # noqa: F811
     client, _ = api
     assert client.get("/recommendations/42?horizon=20").status_code == 422
+
+
+def test_recommendations_include_advice_for_every_chip_held(api):  # noqa: F811
+    client, _ = api
+    body = client.get("/recommendations/42?horizon=3").json()
+    chips = {(c["chip"], c["half"]): c for c in body["chips"]}
+    assert len(chips) == 8  # nothing played yet in the fake season
+    # First-half chips are playable but have 10+ weeks left, so on these flat fixtures:
+    first_bb = chips[("bboost", 1)]
+    assert first_bb["play_in_gameweek"] is None and first_bb["advice"].startswith("Save it")
+    assert first_bb["opportunity_cost"] == 12.0  # Bench Boost par, full while 4+ weeks remain
+    # Second-half chips open in GW20, outside GW9-11
+    assert chips[("wildcard", 2)]["advice"].startswith("Not playable")
+    assert all(gw["chip"] is None for gw in body["plans"][0]["gameweeks"])

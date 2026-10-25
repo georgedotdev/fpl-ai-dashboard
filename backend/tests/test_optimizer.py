@@ -130,3 +130,100 @@ def test_no_transfers_mode_holds_the_squad():
     squad = owned(overrides={8: {"xp": (0.0,)}})
     plan = plan_for(squad + [target(100, "MID", 9.0)], no_transfers=True)
     assert plan.gameweeks[0].moves == []
+
+
+# --- chips ------------------------------------------------------------------------------
+# Opportunity cost: the chip's par value while 4+ gameweeks of its window remain after the
+# week it's played, shrinking linearly to 0 in the window's last gameweek.
+
+from app.optimization.solver import CHIP_PAR, ChipOption, chip_cost  # noqa: E402
+
+
+def chip(name: str, last: int, first: int = 1, half: int = 1) -> ChipOption:
+    return ChipOption(key=f"{name}-{half}", name=name, first_gameweek=first, last_gameweek=last)
+
+
+def test_chip_cost_shrinks_as_the_window_closes():
+    tc = chip("3xc", last=19)
+    assert chip_cost(tc, 9) == CHIP_PAR["3xc"]  # 10 weeks left
+    assert chip_cost(tc, 17) == pytest.approx(CHIP_PAR["3xc"] * 2 / 4)
+    assert chip_cost(tc, 19) == 0.0  # last chance
+
+
+def test_expiring_triple_captain_is_played():
+    plan = plan_for(owned(), chips=[chip("3xc", last=9)])
+    gw = plan.gameweeks[0]
+    assert gw.chip == "3xc-1"
+    assert gw.expected_points == pytest.approx(11 * 4 + 4 + 4)  # captain counted three times
+
+
+def test_triple_captain_is_saved_when_a_better_week_is_likely():
+    # Captain gain 4 < opportunity cost 10 with ten weeks of the window left
+    plan = plan_for(owned(), chips=[chip("3xc", last=19)])
+    assert plan.gameweeks[0].chip is None
+    assert plan.gameweeks[0].expected_points == pytest.approx(48.0)
+
+
+def test_triple_captain_goes_to_the_best_week():
+    # Player 13 has a 12-point week in GW10. Window ends GW11 (costs 5, 2.5, 0).
+    # Net: GW9 4-5 < 0; GW10 (12-2.5) x 0.85 = 8.1; GW11 4 x 0.72 = 2.9 -> GW10
+    squad = owned(horizon=3, overrides={13: {"xp": (4.0, 12.0, 4.0)}})
+    plan = plan_for(squad, horizon=3, chips=[chip("3xc", last=11)])
+    assert [g.chip for g in plan.gameweeks] == [None, "3xc-1", None]
+    assert plan.gameweeks[1].captain == 13
+
+
+def test_one_chip_per_gameweek_and_the_better_one_wins():
+    # Bench of four 3-pointers: Bench Boost +12 beats Triple Captain +4
+    bench = {"xp": (3.0,)}
+    squad = owned(overrides={2: bench, 7: bench, 12: bench, 15: bench})
+    plan = plan_for(squad, chips=[chip("3xc", last=9), chip("bboost", last=9)])
+    gw = plan.gameweeks[0]
+    assert gw.chip == "bboost-1"
+    assert gw.expected_points == pytest.approx(11 * 4 + 4 + 4 * 3)
+
+
+def test_wildcard_makes_a_squad_overhaul_free_and_keeps_banked_transfers():
+    # Four starting midfielders are out for both weeks; four 6-point replacements exist.
+    out = {"xp": (0.0, 0.0)}
+    squad = owned(horizon=2, overrides={8: out, 9: out, 10: out, 11: out})
+    targets = [target(100 + i, "MID", 6.0, team=20 - i, horizon=2) for i in range(4)]
+    plan = plan_for(squad + targets, ft=1, horizon=2, chips=[chip("wildcard", last=10)])
+    gw9, gw10 = plan.gameweeks
+    assert gw9.chip == "wildcard-1"
+    assert len(gw9.moves) >= 4 and gw9.hits == 0
+    assert gw10.free_transfers == 2  # the banked one kept, plus the weekly one
+
+
+def test_free_hit_plays_a_one_week_squad_then_reverts():
+    # Six of the starters blank in GW9 only; six one-week replacements exist.
+    blank = {"xp": (0.0, 4.0)}
+    squad = owned(horizon=2, overrides={p: blank for p in (3, 4, 5, 6, 8, 9)})
+    one_week = [
+        Candidate(100 + i, pos, 20 - i, 50, 50, False, (6.0, 1.0))
+        for i, pos in enumerate(["DEF", "DEF", "DEF", "DEF", "MID", "MID"])
+    ]
+    plan = plan_for(squad + one_week, horizon=2, chips=[chip("freehit", last=9)])
+    gw9, gw10 = plan.gameweeks
+    assert gw9.chip == "freehit-1"
+    assert gw9.moves == [] and gw9.hits == 0  # the base squad isn't touched
+    assert {100, 101, 102, 103, 104, 105} <= set(gw9.lineup)
+    assert gw10.moves == [] and {3, 4, 5, 6, 8, 9} <= set(gw10.lineup)  # reverted
+    assert gw10.free_transfers == 2
+
+
+def test_no_back_to_back_free_hits():
+    blank = {"xp": (0.0, 0.0)}
+    squad = owned(horizon=2, overrides={p: blank for p in (3, 4, 5, 6, 8, 9)})
+    one_week = [
+        Candidate(100 + i, pos, 20 - i, 50, 50, False, (6.0, 6.0))
+        for i, pos in enumerate(["DEF", "DEF", "DEF", "DEF", "MID", "MID"])
+    ]
+    chips = [chip("freehit", last=9), ChipOption("freehit-2", "freehit", 10, 38)]
+    plan = plan_for(squad + one_week, horizon=2, chips=chips)
+    assert sum(g.chip is not None for g in plan.gameweeks) <= 1
+
+
+def test_chips_are_only_played_inside_their_window():
+    plan = plan_for(owned(horizon=2), horizon=2, chips=[ChipOption("3xc-2", "3xc", 20, 20)])
+    assert all(g.chip is None for g in plan.gameweeks)

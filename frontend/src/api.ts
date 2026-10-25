@@ -189,6 +189,8 @@ export interface GameweekRecommendation {
   gameweek: number;
   free_transfers: number | null;
   hits: number;
+  hit_points: number;
+  chip: string | null;
   moves: MovePlan[];
   captain: PickedPlayer;
   vice_captain: PickedPlayer;
@@ -196,6 +198,18 @@ export interface GameweekRecommendation {
   bench: PickedPlayer[];
   expected_points: number;
   bank: number;
+}
+
+export interface ChipAdvice {
+  chip: string;
+  label: string;
+  half: number;
+  window_start: number;
+  window_end: number;
+  play_in_gameweek: number | null;
+  expected_gain: number | null;
+  opportunity_cost: number;
+  advice: string;
 }
 
 export interface RecommendedPlan {
@@ -216,6 +230,7 @@ export interface Recommendations {
   squad_gameweek: number;
   no_transfers_expected_points: number;
   plans: RecommendedPlan[];
+  chips: ChipAdvice[];
   notes: string[];
 }
 

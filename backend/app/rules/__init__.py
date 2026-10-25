@@ -46,6 +46,8 @@ class ChipRules(BaseModel):
     no_back_to_back: list[str]
     free_transfer_chips: list[str]
     reverting_chips: list[str]
+    captain_bonus_chips: list[str]
+    bench_boost_chips: list[str]
     windows: list[ChipWindowRule]
 
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getRecommendations, type GameweekRecommendation, type MovePlan, type RecommendedPlan } from "../api";
+import { getRecommendations, type ChipAdvice, type GameweekRecommendation, type MovePlan, type RecommendedPlan } from "../api";
 import { money } from "../format";
 import { useData } from "../hooks";
 import { Card } from "./Card";
@@ -66,9 +66,22 @@ function Move({ move, gameweeks }: { move: MovePlan; gameweeks: number[] }) {
   );
 }
 
+function ChipBadge({ label }: { label: string }) {
+  return (
+    <span className="rounded bg-violet-100 px-1.5 py-0.5 text-xs font-semibold text-violet-800 dark:bg-violet-950 dark:text-violet-300">
+      {label}
+    </span>
+  );
+}
+
 function FirstGameweek({ gw, gameweeks }: { gw: GameweekRecommendation; gameweeks: number[] }) {
   return (
     <div className="space-y-3">
+      {gw.chip && (
+        <p className="text-sm">
+          <ChipBadge label={gw.chip} /> <span className="ml-1">Play it this gameweek.</span>
+        </p>
+      )}
       {gw.moves.length > 0 ? (
         <ul className="space-y-2">
           {gw.moves.map((m) => (
@@ -96,7 +109,7 @@ function FirstGameweek({ gw, gameweeks }: { gw: GameweekRecommendation; gameweek
         </div>
       </div>
       <p className="text-xs text-slate-500 dark:text-slate-400">
-        GW{gw.gameweek}: {gw.hits > 0 ? `${gw.hits} hit${gw.hits > 1 ? "s" : ""} (−${gw.hits * 4}), ` : "no hits, "}
+        GW{gw.gameweek}: {gw.hits > 0 ? `${gw.hits} hit${gw.hits > 1 ? "s" : ""} (−${gw.hit_points}), ` : "no hits, "}
         {money(gw.bank)} left in the bank, {points(gw.expected_points)} expected points from the XI and captain.
       </p>
     </div>
@@ -115,7 +128,13 @@ function LaterGameweeks({ plan }: { plan: RecommendedPlan }) {
             <span className="font-medium">GW{gw.gameweek}</span>
             <span className="text-slate-500 dark:text-slate-400"> · {gw.free_transfers ?? "∞"} FT · </span>
             {gw.moves.length ? gw.moves.map((m) => `${m.player_out.web_name} → ${m.player_in.web_name}`).join(", ") : "roll"}
-            {gw.hits > 0 && <span className="text-red-600 dark:text-red-400"> (−{gw.hits * 4})</span>}
+            {gw.hits > 0 && <span className="text-red-600 dark:text-red-400"> (−{gw.hit_points})</span>}
+            {gw.chip && (
+              <>
+                {" "}
+                <ChipBadge label={gw.chip} />
+              </>
+            )}
             <span className="text-slate-500 dark:text-slate-400"> · C {gw.captain.web_name}</span>
           </li>
         ))}
@@ -124,6 +143,40 @@ function LaterGameweeks({ plan }: { plan: RecommendedPlan }) {
         Later moves are provisional: re-check after each deadline, when the predictions update.
       </p>
     </details>
+  );
+}
+
+function ChipsAdvice({ chips }: { chips: ChipAdvice[] }) {
+  if (chips.length === 0) return null;
+  const play = (c: ChipAdvice) => c.play_in_gameweek != null;
+  return (
+    <div className="mt-4 border-t border-slate-100 pt-3 dark:border-slate-800">
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Chips</h3>
+      <ul className="grid gap-2 sm:grid-cols-2">
+        {chips.map((c) => (
+          <li
+            key={`${c.chip}-${c.half}`}
+            className={`rounded-lg border p-2.5 text-sm ${
+              play(c)
+                ? "border-violet-400 bg-violet-50 dark:border-violet-700 dark:bg-violet-950"
+                : "border-slate-200 dark:border-slate-800"
+            }`}
+          >
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="font-medium">{c.label}</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                {c.half === 1 ? "1st" : "2nd"} half · GW{c.window_start}–{c.window_end}
+              </span>
+            </div>
+            <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">{c.advice}</p>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+        A chip is only played when it beats what saving it is likely to be worth, a hand-set estimate that shrinks to zero
+        as its window closes. Chips are usually best saved for double or blank gameweeks.
+      </p>
+    </div>
   );
 }
 
@@ -180,6 +233,7 @@ export function RecommendationsPanel({ teamId, refreshKey }: { teamId: number; r
               <LaterGameweeks plan={plan} />
             </>
           )}
+          <ChipsAdvice chips={data.chips} />
           <ul className="mt-4 space-y-0.5 border-t border-slate-100 pt-3 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
             <li>
               Plans are ranked by expected points over GW{data.gameweeks[0]}–{data.gameweeks[data.gameweeks.length - 1]}, with

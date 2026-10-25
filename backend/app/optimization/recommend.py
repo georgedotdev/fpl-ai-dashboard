@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from app.game import GameData
 from app.manager.state import ManagerState, Sourced
-from app.optimization.solver import DECAY, Candidate, Infeasible, Plan, Problem, solve
+from app.optimization.solver import DECAY, Candidate, ChipOption, Infeasible, Plan, Problem, chip_cost, solve
 from app.prediction import XPMatrix
 from app.rules import POSITIONS, SeasonRules
 
@@ -53,13 +53,27 @@ class GameweekRecommendation(BaseModel):
     gameweek: int
     free_transfers: int | None
     hits: int
+    hit_points: int  # points deducted for hits
+    chip: str | None  # label of the chip played this gameweek, e.g. "Bench Boost"
     moves: list[MovePlan]
     captain: PickedPlayer
     vice_captain: PickedPlayer
     lineup: list[PickedPlayer]
     bench: list[PickedPlayer]  # in substitution order, goalkeeper first
-    expected_points: float  # XI + captain bonus, before hits
+    expected_points: float  # XI + captain bonus (+ chip effects), before hits
     bank: int
+
+
+class ChipAdvice(BaseModel):
+    chip: str  # FPL's name
+    label: str
+    half: int
+    window_start: int
+    window_end: int
+    play_in_gameweek: int | None  # where the best plan plays it within the horizon, if anywhere
+    expected_gain: float | None  # best plan's points minus the best plan without this chip
+    opportunity_cost: float  # what playing it in the first planning gameweek gives up
+    advice: str
 
 
 class RecommendedPlan(BaseModel):
@@ -78,8 +92,9 @@ class Recommendations(BaseModel):
     bank: Sourced[int]
     free_transfers: Sourced[int | None]
     squad_gameweek: int
-    no_transfers_expected_points: float
+    no_transfers_expected_points: float  # no transfers and no chips
     plans: list[RecommendedPlan]
+    chips: list[ChipAdvice]
     notes: list[str]
 
 
@@ -119,15 +134,18 @@ def build_candidates(state: ManagerState, game: GameData, xp: XPMatrix) -> list[
 
 
 def recommend(
-    state: ManagerState, game: GameData, xp: XPMatrix, rules: SeasonRules, alternatives: int = 2
+    state: ManagerState, game: GameData, xp: XPMatrix, rules: SeasonRules, alternatives: int = 1
 ) -> Recommendations:
     candidates = build_candidates(state, game, xp)
     by_id = {c.player_id: c for c in candidates}
+    chips = chip_options(state, xp.gameweeks)
+    labels = rules.chips.labels
 
     def problem(**kw) -> Problem:
+        kw.setdefault("chips", chips)
         return Problem(xp.gameweeks, candidates, state.bank.value, state.free_transfers.value, rules, **kw)
 
-    hold = solve(problem(no_transfers=True))
+    hold = solve(problem(no_transfers=True, chips=[]))
     plans: list[Plan] = []
     excluded: list[frozenset[int]] = []
     for attempt in range(1 + alternatives):
@@ -180,6 +198,8 @@ def recommend(
                     gameweek=g.gameweek,
                     free_transfers=g.free_transfers,
                     hits=g.hits,
+                    hit_points=g.hits * rules.transfers.hit_cost,
+                    chip=labels.get(g.chip.rsplit("-", 1)[0]) if g.chip else None,
                     moves=moves,
                     captain=picked(g.captain, t),
                     vice_captain=picked(g.vice_captain, t),
@@ -198,6 +218,21 @@ def recommend(
                 gameweeks=gws,
             )
         )
+
+    best = plans[0]
+
+    def chip_gain(key: str) -> float:
+        """Expected points the chip adds to the best plan."""
+        t, g = next((t, g) for t, g in enumerate(best.gameweeks) if g.chip == key)
+        name = key.rsplit("-", 1)[0]
+        if name in rules.chips.captain_bonus_chips:
+            return by_id[g.captain].xp[t]
+        if name in rules.chips.bench_boost_chips:
+            return sum(by_id[p].xp[t] for p in g.bench)
+        # Wildcard / Free Hit change the whole plan: compare with the best plan without it.
+        return best.expected_points - solve(problem(chips=[c for c in chips if c.key != key])).expected_points
+
+    advice = chip_advice(chips, state, best, chip_gain, xp.gameweeks, labels)
 
     notes = [
         f"Expected points come from the '{xp.model}' predictor.",
@@ -219,13 +254,83 @@ def recommend(
         squad_gameweek=state.squad_gameweek,
         no_transfers_expected_points=hold.expected_points,
         plans=out,
+        chips=advice,
         notes=notes,
     )
 
 
+def chip_options(state: ManagerState, gameweeks: list[int]) -> list[ChipOption]:
+    """The chips the manager still holds that can be played somewhere in the horizon."""
+    if not gameweeks:
+        return []
+    options = []
+    for c in state.chips:
+        if c.state not in ("available", "upcoming") or c.usable_from_gameweek is None:
+            continue
+        first = c.usable_from_gameweek
+        if first <= gameweeks[-1] and c.window_end >= gameweeks[0]:
+            options.append(ChipOption(f"{c.chip}-{c.half}", c.chip, first, c.window_end))
+    return options
+
+
+def chip_advice(
+    chips: list[ChipOption],
+    state: ManagerState,
+    best: Plan,
+    chip_gain,
+    gameweeks: list[int],
+    labels: dict[str, str],
+) -> list[ChipAdvice]:
+    """One line per chip still held: play it now, pencil it in, or save it, and why."""
+    played = {g.chip: g.gameweek for g in best.gameweeks if g.chip}
+    by_key = {c.key: c for c in chips}
+    out = []
+    for status in state.chips:
+        if status.state not in ("available", "upcoming"):
+            continue
+        key = f"{status.chip}-{status.half}"
+        label = labels.get(status.chip, status.chip)
+        option = by_key.get(key)
+        gw = played.get(key)
+        gain = None
+        if gw is not None:
+            gain = round(chip_gain(key), 2)
+            when = "this gameweek" if gw == gameweeks[0] else f"in GW{gw}"
+            if status.window_end == gw:
+                why = f"it expires after GW{gw}"
+            else:
+                why = f"more than the ~{chip_cost(option, gw):.1f} that saving it is likely to be worth"
+            advice = f"Play it {when}: about {gain:+.1f} expected points, {why}."
+        elif option is None:
+            advice = f"Not playable in GW{gameweeks[0]}–{gameweeks[-1]}; its window is GW{status.usable_from_gameweek}–{status.window_end}."
+        else:
+            advice = (
+                f"Save it: no week in GW{gameweeks[0]}–{gameweeks[-1]} beats keeping it for later in its "
+                f"window (until GW{status.window_end})."
+            )
+        out.append(
+            ChipAdvice(
+                chip=status.chip,
+                label=label,
+                half=status.half,
+                window_start=status.window_start,
+                window_end=status.window_end,
+                play_in_gameweek=gw,
+                expected_gain=gain,
+                opportunity_cost=round(chip_cost(option, gameweeks[0]), 2) if option and option.first_gameweek <= gameweeks[0] else 0.0,
+                advice=advice,
+            )
+        )
+    return out
+
+
 def _headline(first: GameweekRecommendation) -> str:
-    if not first.moves:
-        return "Roll your free transfer" if first.free_transfers else "No transfers this week"
-    names = ", ".join(f"{m.player_out.web_name} → {m.player_in.web_name}" for m in first.moves)
-    hit = f" (−{first.hits * 4} hit)" if first.hits else ""
-    return f"{names}{hit}"
+    parts = []
+    if first.chip:
+        parts.append(f"Play {first.chip}")
+    if first.moves:
+        names = ", ".join(f"{m.player_out.web_name} → {m.player_in.web_name}" for m in first.moves)
+        parts.append(names + (f" (−{first.hit_points} hit)" if first.hits else ""))
+    if parts:
+        return "; ".join(parts)
+    return "Roll your free transfer" if first.free_transfers else "No transfers this week"

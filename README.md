@@ -11,7 +11,7 @@ The system is split into a **prediction brain** (how many points will each playe
 | Stage | What | State |
 |---|---|---|
 | 1 | Data layer: team ID → squad, bank, free transfers, chips | **Done (local)** |
-| 2 | Optimizer end to end on a baseline predictor (no ML) | **Transfers, captain, bench done (local)**; chip timing next |
+| 2 | Optimizer end to end on a baseline predictor (no ML) | **Done (local)**: transfers, captain, bench, chip timing |
 | 3 | Trained prediction model behind the same interface | Not started |
 
 ## What works now
@@ -23,7 +23,7 @@ The system is split into a **prediction brain** (how many points will each playe
   - **Chips left**: from the chips you've played and the season's chip windows.
 - Every rule (budget, squad shape, club limit, transfer cap, hit cost, chip windows) lives in [`backend/app/rules/2026_27.toml`](backend/app/rules/2026_27.toml) and is checked against the live API on every refresh.
 - A scheduled ingest stores players, teams, gameweeks and fixtures, plus a daily price snapshot for price trends.
-- **Recommendations** (`GET /recommendations/{team_id}?horizon=5`): an integer linear program (HiGHS) plans transfers, hits, captain, starting XI and bench over the next 1 to 8 gameweeks. It returns the best plan and up to two alternatives, each with its expected gain over making no transfers and the facts behind every move.
+- **Recommendations** (`GET /recommendations/{team_id}?horizon=5`): an integer linear program (HiGHS) plans transfers, hits, captain, starting XI, bench and **chip timing** (Wildcard, Free Hit, Triple Captain, Bench Boost) over the next 1 to 8 gameweeks. It returns the best plan and an alternative, each with its expected gain over doing nothing and the facts behind every move, plus play-or-save advice for every chip still held.
 - **Predictions** come from a transparent baseline: form and season scoring rate, × fixture difficulty, × availability (including return dates parsed from injury news). They sit behind one `XPMatrix` interface, so the Stage 3 model can replace them without touching anything else.
 - **Dashboard views:** player list with prices, price changes and xP (`/players`); fixture difficulty ticker (`/fdr`); best captains (`/captaincy`); best players for the coming fixtures (`/picks/best-by-fixtures`).
 

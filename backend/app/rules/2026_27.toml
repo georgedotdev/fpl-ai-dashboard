@@ -46,6 +46,10 @@ no_back_to_back = ["freehit"]
 free_transfer_chips = ["wildcard", "freehit"]
 # Chips after which the squad (and bank) revert to how they were before the gameweek.
 reverting_chips = ["freehit"]
+# Chips that add one more multiple of the captain's points (Triple Captain: 3x not 2x).
+captain_bonus_chips = ["3xc"]
+# Chips that make the bench's points count.
+bench_boost_chips = ["bboost"]
 
 [[chips.windows]]
 name = "wildcard"
