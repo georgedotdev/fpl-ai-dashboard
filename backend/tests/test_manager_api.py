@@ -9,6 +9,7 @@ from sqlalchemy.pool import StaticPool
 from app.db import get_session
 from app.db.models import Base
 from app.fpl import FPLNotFound
+from app.fpl.models import Fixture
 from app.main import app, get_client
 from tests import factories as f
 
@@ -53,6 +54,18 @@ class FakeFPL:
 
     def element_summary(self, player_id):
         return f.element_summary({gw: 50 for gw in range(1, 9)})
+
+    def fixtures(self):
+        # Every gameweek: 1 v 2, 3 v 4, ... 19 v 20, at home with difficulty 2 (away 4).
+        return [
+            Fixture.model_validate({
+                "id": gw * 100 + home, "code": gw * 100 + home, "event": gw, "kickoff_time": None,
+                "team_h": home, "team_a": home + 1, "team_h_difficulty": 2, "team_a_difficulty": 4,
+                "team_h_score": None, "team_a_score": None, "started": gw <= 8, "finished": gw <= 8,
+            })
+            for gw in range(1, 39)
+            for home in range(1, 20, 2)
+        ]
 
 
 @pytest.fixture

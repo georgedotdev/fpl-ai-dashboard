@@ -19,6 +19,12 @@ class Settings(BaseSettings):
 
     cors_origins: list[str] = ["http://localhost:5173"]
 
+    # Which prediction brain feeds the optimizer and dashboard (see app/prediction).
+    predictor: str = "baseline-form-fixtures"
+    # Planning horizon in gameweeks (spec open question 7, decided in D-010).
+    default_horizon: int = 5
+    max_horizon: int = 8
+
     @field_validator("database_url")
     @classmethod
     def _use_psycopg_driver(cls, url: str) -> str:

@@ -104,3 +104,150 @@ export function setFreeTransfers(teamId: number, freeTransfers: number | null): 
     body: JSON.stringify({ free_transfers: freeTransfers }),
   });
 }
+
+// --- Stage 2: dashboard views and recommendations ------------------------------------
+
+export interface PlayerSummary {
+  player_id: number;
+  web_name: string;
+  team_id: number;
+  team_short_name: string;
+  position: Position;
+  now_cost: number;
+  cost_change_event: number;
+  cost_change_start: number;
+  net_transfers_event: number;
+  form: number;
+  total_points: number;
+  selected_by_percent: number;
+  status: string;
+  chance_of_playing_next_round: number | null;
+  news: string;
+  ep_next: number | null;
+  xp_next: number;
+  xp_horizon: number;
+  xp_per_million: number;
+  upcoming: string[];
+}
+
+export interface PlayersResponse {
+  model: string;
+  gameweeks: number[];
+  players: PlayerSummary[];
+}
+
+export interface TeamFixtureCell {
+  gameweek: number;
+  opponent: string;
+  home: boolean;
+  difficulty: number;
+}
+
+export interface TeamTicker {
+  team_id: number;
+  name: string;
+  short_name: string;
+  gameweeks: TeamFixtureCell[][];
+  fixture_count: number;
+  average_difficulty: number | null;
+}
+
+export interface FixturesResponse {
+  gameweeks: number[];
+  teams: TeamTicker[];
+}
+
+export interface PlayerFacts {
+  player_id: number;
+  web_name: string;
+  team_short_name: string;
+  position: Position;
+  price: number;
+  xp: number[];
+  xp_total: number;
+  availability: number[];
+  status: string;
+  news: string;
+  fixtures: string[][];
+}
+
+export interface MovePlan {
+  player_out: PlayerFacts;
+  player_in: PlayerFacts;
+  xp_gain: number;
+}
+
+export interface PickedPlayer {
+  player_id: number;
+  web_name: string;
+  position: Position;
+  team_short_name: string;
+  xp: number;
+}
+
+export interface GameweekRecommendation {
+  gameweek: number;
+  free_transfers: number | null;
+  hits: number;
+  moves: MovePlan[];
+  captain: PickedPlayer;
+  vice_captain: PickedPlayer;
+  lineup: PickedPlayer[];
+  bench: PickedPlayer[];
+  expected_points: number;
+  bank: number;
+}
+
+export interface RecommendedPlan {
+  rank: number;
+  headline: string;
+  expected_points: number;
+  gain_vs_no_transfers: number;
+  gameweeks: GameweekRecommendation[];
+}
+
+export interface Recommendations {
+  team_id: number;
+  model: string;
+  gameweeks: number[];
+  decay: number;
+  bank: Sourced<number>;
+  free_transfers: Sourced<number | null>;
+  squad_gameweek: number;
+  no_transfers_expected_points: number;
+  plans: RecommendedPlan[];
+  notes: string[];
+}
+
+function query(params: Record<string, string | number | undefined>): string {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== "") q.set(k, String(v));
+  const s = q.toString();
+  return s ? `?${s}` : "";
+}
+
+export function getRecommendations(teamId: number, horizon: number): Promise<Recommendations> {
+  return request(`/recommendations/${teamId}${query({ horizon })}`);
+}
+
+export function getPlayers(params: {
+  horizon: number;
+  position?: string;
+  max_price?: number;
+  sort?: string;
+  limit?: number;
+}): Promise<PlayersResponse> {
+  return request(`/players${query(params)}`);
+}
+
+export function getCaptaincy(limit = 10): Promise<PlayersResponse> {
+  return request(`/captaincy${query({ limit })}`);
+}
+
+export function getBestPicks(params: { horizon: number; position?: string; max_price?: number; limit?: number }): Promise<PlayersResponse> {
+  return request(`/picks/best-by-fixtures${query(params)}`);
+}
+
+export function getFixtures(horizon: number): Promise<FixturesResponse> {
+  return request(`/fdr${query({ horizon })}`);
+}

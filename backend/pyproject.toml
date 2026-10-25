@@ -13,6 +13,8 @@ dependencies = [
     "alembic>=1.13",
     "psycopg[binary]>=3.2",
     "tenacity>=8.5",
+    # The optimizer's integer linear programming solver (HiGHS) and its modelling API.
+    "highspy>=1.11",
     # IANA time zones for zoneinfo on Windows (Linux has them built in).
     "tzdata>=2024.1",
 ]

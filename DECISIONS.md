@@ -134,3 +134,61 @@ FPL's recorded hit charge for each gameweek is used as a check. If FPL charged a
 **Decision.** A free-transfer override stores the gameweek it was set for. Once that deadline passes, it's ignored with a warning, and the derived value is shown again.
 
 **Why.** A correction for GW9 is wrong by definition in GW10. Silently carrying it forward would make the app confidently wrong.
+
+---
+
+## D-009: HiGHS (via `highspy`) as the optimization solver
+
+- **Date:** 2026-10-25
+- **Status:** Decided (replaces the spec's suggestion of PuLP or OR-Tools)
+
+**Decision.** The optimizer builds its integer linear program with `highspy`, the Python interface to the HiGHS solver.
+
+**Why.** PuLP 4.x (the current release) no longer ships a solver and has rewritten its modelling API; pinning PuLP 2.x would mean depending on an old line from day one. HiGHS is a leading open-source MIP solver (MIT licence), installs as one wheel, and its Python API builds models as readable expressions. On live data one solve takes about 0.8 s.
+
+---
+
+## D-010: Planning horizon defaults
+
+- **Date:** 2026-10-25
+- **Status:** Decided by the owner (closes spec §8.7)
+
+**Decision.** Transfers are planned 5 gameweeks ahead by default; captaincy looks 1 gameweek ahead. Later gameweeks are weighted ×0.85 per week. The user can choose 1–8 gameweeks in the dashboard.
+
+**Why.** Five weeks is long enough to see fixture swings and returning injuries, and short enough that predictions still mean something. It's the standard among FPL planning tools.
+
+---
+
+## D-011: Stage 2 baseline predictor
+
+- **Date:** 2026-10-25
+- **Status:** Decided
+
+**Finding.** FPL's `ep_next` is exactly form × chance of playing (all 321 available players with form matched). It ignores fixtures and covers one gameweek only, so it can't drive multi-week planning on its own.
+
+**Decision.** `xP = scoring rate × availability × Σ fixture factor`:
+
+- **Scoring rate:** 50% form, 50% season points per team match. Using team matches (not appearances) builds in rotation risk.
+- **Availability:** FPL's chance of playing for the next gameweek. For later gameweeks, the return date parsed from the news text ("Expected back 8 Nov", "Suspended until 1 Nov"). Players out with no return date stay out; doubtful players recover after a week.
+- **Fixture factor:** a hand-set multiplier per FPL difficulty (1: ×1.2 … 5: ×0.8). Blank gameweeks score 0; doubles are summed.
+
+**Why.** It's transparent and can be checked by hand. The multipliers are a guess, labelled as one; Stage 3 replaces the whole predictor behind the same `XPMatrix` interface. Injuries are weighed through availability, never through "if injured, sell" rules.
+
+---
+
+## D-012: Optimizer formulation and tuning
+
+- **Date:** 2026-10-25
+- **Status:** Decided. The numbers below are tunable defaults, not research results.
+
+**Decision.** One multi-gameweek integer program decides squad, starting XI, captain and transfers for each gameweek in the horizon. Free transfers are modelled exactly: banked up to the cap, hits only for transfers beyond the free ones, and no paying a hit to bank a transfer. Budget is bank plus estimated selling prices. Club limit and squad/XI shapes come from `season_rules`.
+
+- Bench players' points count at a small weight (0.1 outfield, 0.03 goalkeeper), because they only score through auto-subs.
+- Each free transfer still banked at the end of the horizon is worth 1.5 points; without this, the plan would spend every transfer in the last week on tiny gains.
+- The candidate pool is owned players, plus the best 6 GKP / 15 DEF / 15 MID / 10 FWD by discounted xP, plus the 3 cheapest available per position. On live data, widening DEF/MID to 25 gave the identical plan at twice the solve time.
+- Prices are assumed constant over the horizon.
+- Alternative plans are found by forbidding the previous plans' first-week purchases and solving again. A "no transfers" solve gives each plan's expected gain.
+- Vice-captain and bench order are chosen after the solve, by expected points.
+- Results are cached for 10 minutes per identical input. A cold request takes about 6 s; a cached one 0.25 s.
+
+**Not yet (rest of Stage 2):** chip timing (Wildcard, Free Hit, Triple Captain, Bench Boost). The plan is to compare "play it this week" against "save it" scenarios, as the spec suggests.
