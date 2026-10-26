@@ -19,10 +19,12 @@ function Stat({ label, value, sourced }: { label: string; value: string; sourced
 function FreeTransfers({
   state,
   maxBanked,
+  canReset,
   onSave,
 }: {
   state: ManagerState;
   maxBanked: number;
+  canReset: boolean;
   onSave: (value: number | null) => Promise<void>;
 }) {
   const ft = state.free_transfers;
@@ -90,7 +92,7 @@ function FreeTransfers({
               Not right? Correct it
             </button>
           )}
-          {ft.source === "user_override" && (
+          {canReset && ft.source === "user_override" && (
             <button
               onClick={() => void save(null)}
               disabled={saving}
@@ -109,16 +111,24 @@ function FreeTransfers({
 export function Summary({
   state,
   onSetFreeTransfers,
+  canResetFreeTransfers = true,
 }: {
   state: ManagerState;
   onSetFreeTransfers: (value: number | null) => Promise<void>;
+  // False when there's no derived value to go back to (a squad entered by hand).
+  canResetFreeTransfers?: boolean;
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <Stat label="Money in the bank" value={money(state.bank.value)} sourced={state.bank} />
       <Stat label="Team value" value={money(state.team_value.value)} sourced={state.team_value} />
       <Stat label="Value if you sold everyone" value={money(state.sale_value.value)} sourced={state.sale_value} />
-      <FreeTransfers state={state} maxBanked={state.max_free_transfers} onSave={onSetFreeTransfers} />
+      <FreeTransfers
+        state={state}
+        maxBanked={state.max_free_transfers}
+        canReset={canResetFreeTransfers}
+        onSave={onSetFreeTransfers}
+      />
     </div>
   );
 }

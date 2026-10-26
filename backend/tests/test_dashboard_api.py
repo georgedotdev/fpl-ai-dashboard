@@ -88,3 +88,39 @@ def test_explanation_endpoint_uses_templates_without_a_local_model(api):  # noqa
     assert "Captain" in body["text"]
     assert body["facts"]["planning_window"] == "GW9-GW10"
     assert client.get("/recommendations/42/explanation?horizon=2&plan=9").status_code == 404
+
+
+MANUAL = {"player_ids": list(range(1, 16)), "bank": 12, "free_transfers": 1, "chips_available": ["wildcard-1"]}
+
+
+def test_manual_squad_state_and_recommendations(api):  # noqa: F811
+    client, _ = api
+    state = client.post("/manual/state", json=MANUAL).json()
+    assert state["team_name"] == "Your squad (entered by hand)" and len(state["squad"]) == 15
+    recs = client.post("/manual/recommendations?horizon=2", json=MANUAL).json()
+    assert recs["gameweeks"] == [9, 10] and recs["plans"][0]["rank"] == 1
+    assert recs["free_transfers"] == {"value": 1, "source": "user_override", "note": "Entered by you."}
+
+
+def test_manual_explanation(api):  # noqa: F811
+    from app.main import app, get_local_explainer
+
+    client, _ = api
+    app.dependency_overrides[get_local_explainer] = lambda: None
+    body = client.post("/manual/recommendations/explanation?horizon=2", json=MANUAL).json()
+    assert body["source"] == "template" and "Captain" in body["text"]
+
+
+def test_manual_squad_problems_come_back_as_one_readable_422(api):  # noqa: F811
+    client, _ = api
+    response = client.post("/manual/state", json=MANUAL | {"player_ids": list(range(1, 15))})
+    assert response.status_code == 422
+    assert response.json()["detail"].startswith("Pick exactly 15 players (you have 14).")
+
+
+def test_rules_endpoint_lists_shape_and_open_chips(api):  # noqa: F811
+    client, _ = api
+    body = client.get("/rules").json()
+    assert body["positions"] == {"GKP": 2, "DEF": 5, "MID": 5, "FWD": 3} and body["max_per_club"] == 3
+    open_now = {c["key"] for c in body["chips"] if c["open_now"]}
+    assert open_now == {"wildcard-1", "freehit-1", "bboost-1", "3xc-1"}

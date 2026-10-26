@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getExplanation, getRecommendations, type ChipAdvice, type GameweekRecommendation, type MovePlan, type RecommendedPlan } from "../api";
+import type { ChipAdvice, Explanation, GameweekRecommendation, MovePlan, Recommendations, RecommendedPlan } from "../api";
 import { money } from "../format";
 import { useData } from "../hooks";
 import { Card } from "./Card";
@@ -146,8 +146,15 @@ function LaterGameweeks({ plan }: { plan: RecommendedPlan }) {
   );
 }
 
-function Why({ teamId, horizon, rank }: { teamId: number; horizon: number; rank: number }) {
-  const { data, error, loading } = useData(() => getExplanation(teamId, horizon, rank), [teamId, horizon, rank]);
+/** Where a panel's data comes from: a team ID, or a squad entered by hand. */
+export interface PlanSource {
+  key: string; // changes whenever the inputs change, so the panel reloads
+  recommendations: (horizon: number) => Promise<Recommendations>;
+  explanation: (horizon: number, rank: number) => Promise<Explanation>;
+}
+
+function Why({ source, horizon, rank }: { source: PlanSource; horizon: number; rank: number }) {
+  const { data, error, loading } = useData(() => source.explanation(horizon, rank), [source.key, horizon, rank]);
   return (
     <div className="mb-3 rounded-lg bg-slate-50 p-3 text-sm dark:bg-slate-800/60">
       <div className="mb-1 flex items-center justify-between gap-2">
@@ -207,10 +214,10 @@ function ChipsAdvice({ chips }: { chips: ChipAdvice[] }) {
   );
 }
 
-export function RecommendationsPanel({ teamId, refreshKey }: { teamId: number; refreshKey: string }) {
+export function RecommendationsPanel({ source }: { source: PlanSource }) {
   const [horizon, setHorizon] = useState(5);
   const [selected, setSelected] = useState(0);
-  const { data, error, loading } = useData(() => getRecommendations(teamId, horizon), [teamId, horizon, refreshKey]);
+  const { data, error, loading } = useData(() => source.recommendations(horizon), [source.key, horizon]);
   const plan = data?.plans[selected];
 
   return (
@@ -256,7 +263,7 @@ export function RecommendationsPanel({ teamId, refreshKey }: { teamId: number; r
           {plan && (
             <>
               <h3 className="mb-2 font-semibold">{plan.headline}</h3>
-              <Why teamId={teamId} horizon={horizon} rank={plan.rank} />
+              <Why source={source} horizon={horizon} rank={plan.rank} />
               <FirstGameweek gw={plan.gameweeks[0]} gameweeks={data.gameweeks} />
               <LaterGameweeks plan={plan} />
             </>

@@ -19,12 +19,14 @@ from app.fpl import FPLClient, FPLError, FPLNotFound
 from app.game import GameData
 from app.insights import PlayerSummary, TeamTicker, fixture_ticker, player_summaries
 from app.manager.builder import NoSquadYet, build_manager_state
+from app.manager.manual import InvalidSquad, ManualSquad, build_manual_state
 from app.manager.overrides import get_override, set_free_transfers
 from app.manager.state import ManagerState
 from app.optimization.recommend import Recommendations, recommend
 from app.optimization.solver import Infeasible
 from app.prediction import Predictor, XPMatrix, get_predictor
 from app.rules import SeasonRules, load_rules
+from app.rules.checks import chip_windows
 from app.settings import get_settings
 
 settings = get_settings()
@@ -37,7 +39,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
-    allow_methods=["GET", "PATCH"],
+    allow_methods=["GET", "PATCH", "POST"],
     allow_headers=["Content-Type"],
 )
 
@@ -229,7 +231,10 @@ def get_recommendations(
 
 
 def _recommendations(team_id, client, rules, session, game, predictor, horizon) -> Recommendations:
-    state = _state(client, rules, session, team_id)
+    return _recommend_for(_state(client, rules, session, team_id), game, predictor, rules, horizon)
+
+
+def _recommend_for(state: ManagerState, game, predictor, rules, horizon) -> Recommendations:
     xp = _predict(game, predictor, horizon)
     key = hashlib.sha256((state.model_dump_json() + xp.model_dump_json()).encode()).hexdigest()
     hit = _recommendation_cache.get(key)
@@ -273,6 +278,10 @@ def get_explanation(
 ) -> Explanation:
     """Plain-English reasons for a recommended plan, written only from that plan's facts."""
     recs = _recommendations(team_id, client, rules, session, game, predictor, horizon)
+    return _explain_plan(recs, plan, local)
+
+
+def _explain_plan(recs: Recommendations, plan: int, local: OllamaExplainer | None) -> Explanation:
     chosen = next((p for p in recs.plans if p.rank == plan), None)
     if chosen is None:
         raise HTTPException(404, f"There is no plan {plan}; this team has {len(recs.plans)}.")
@@ -285,3 +294,88 @@ def get_explanation(
             _explanation_cache.clear()
         _explanation_cache[key] = result
     return result
+
+
+# --- squads entered by hand (no team ID) -------------------------------------------------
+# The FPL app doesn't show team IDs, so a manager can enter their 15 players, bank, free
+# transfers and chips instead. Nothing is stored: the squad travels with each request.
+
+
+def _manual_state(squad: ManualSquad, game: GameData, rules: SeasonRules) -> ManagerState:
+    try:
+        return build_manual_state(squad, game, rules)
+    except InvalidSquad as exc:
+        raise HTTPException(422, " ".join(exc.problems))
+    except NoSquadYet as exc:
+        raise HTTPException(409, str(exc))
+
+
+@app.post("/manual/state")
+def manual_state(squad: ManualSquad, game: GameDep, rules: RulesDep) -> ManagerState:
+    """The same view as /manager/{team_id}, for a squad entered by hand."""
+    return _manual_state(squad, game, rules)
+
+
+@app.post("/manual/recommendations")
+def manual_recommendations(
+    squad: ManualSquad, game: GameDep, rules: RulesDep, predictor: PredictorDep,
+    horizon: Horizon = settings.default_horizon,
+) -> Recommendations:
+    return _recommend_for(_manual_state(squad, game, rules), game, predictor, rules, horizon)
+
+
+@app.post("/manual/recommendations/explanation")
+def manual_explanation(
+    squad: ManualSquad, game: GameDep, rules: RulesDep, predictor: PredictorDep,
+    local: Annotated[OllamaExplainer | None, Depends(get_local_explainer)],
+    horizon: Horizon = settings.default_horizon,
+    plan: Annotated[int, Query(ge=1, description="Which plan to explain, by rank")] = 1,
+) -> Explanation:
+    recs = _recommend_for(_manual_state(squad, game, rules), game, predictor, rules, horizon)
+    return _explain_plan(recs, plan, local)
+
+
+# --- rules for clients -------------------------------------------------------------------
+
+
+class ChipRule(BaseModel):
+    key: str  # "<chip>-<half>", as ManualSquad.chips_available expects
+    chip: str
+    label: str
+    half: int
+    window_start: int
+    window_end: int
+    open_now: bool  # playable at the next deadline
+
+
+class RulesResponse(BaseModel):
+    season: str
+    planning_gameweek: int | None
+    squad_size: int
+    positions: dict[str, int]
+    max_per_club: int
+    max_free_transfers: int
+    chips: list[ChipRule]
+
+
+@app.get("/rules")
+def rules_for_clients(game: GameDep, rules: RulesDep) -> RulesResponse:
+    """This season's rules, so clients (like the squad builder) never hard-code them."""
+    upcoming = game.bootstrap.next_event()
+    gw = upcoming.id if upcoming else None
+    return RulesResponse(
+        season=rules.season,
+        planning_gameweek=gw,
+        squad_size=rules.squad.size,
+        positions=rules.squad.positions,
+        max_per_club=rules.squad.max_per_club,
+        max_free_transfers=rules.transfers.max_banked,
+        chips=[
+            ChipRule(
+                key=f"{w.name}-{w.half}", chip=w.name, label=rules.chips.labels.get(w.name, w.name),
+                half=w.half, window_start=w.start, window_end=w.end,
+                open_now=gw is not None and w.start <= gw <= w.end,
+            )
+            for w in chip_windows(rules, game.bootstrap)
+        ],
+    )

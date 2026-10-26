@@ -252,3 +252,23 @@ The full cost applies while 4 or more gameweeks of the window remain after the w
 **Next.** Fine-tune the small local model on fact→explanation pairs (LoRA on a free GPU) as a "trained it myself" piece, after Stage 3. Hosting a model live needs a server with about 4–6 GB of RAM, so the cheap hosted demo serves templates unless that's paid for.
 
 **Limits.** The number check catches digits, not numbers written as words ("three"). Templates read mechanically.
+
+---
+
+## D-015: Getting in without hunting for a team ID
+
+- **Date:** 2026-10-25
+- **Status:** Decided by the owner
+
+**Problem.** The official FPL app never shows a team ID; it's only in the website's address bar. FPL has no public "search managers by name" endpoint, and searching public leagues by name isn't practical (the overall league has millions of entries). Logging in with the user's FPL password would find it, but the project never handles FPL passwords.
+
+**Decision.** Four additions; nothing that existed changed behaviour.
+
+1. **Paste anything:** the team ID box accepts the number or any FPL link containing `/entry/<id>`, and pulls the ID out.
+2. **Remembered on the device:** after a successful load the ID is kept in the browser's local storage (guarded; the app works without it), so the hunt happens once. The page is also installable to the home screen: a web app manifest, icons, an install button where the browser offers one (Chrome/Edge), and Share → Add to Home Screen instructions on iPhone.
+3. **Phone-first help:** "Where do I find my team ID?" explains the website route, warns that links may open the FPL app, and offers the alternative below.
+4. **Squad entered by hand** (`POST /manual/state`, `/manual/recommendations`, `/manual/recommendations/explanation`): the user picks 15 players and gives their bank, free transfers and chips still held. It's validated against `season_rules` (squad shape, club limit, free-transfer cap), and the same recommendations and explanations run on it. Nothing is stored server-side; the squad travels with each request and is remembered only on the device.
+
+`GET /rules` exposes squad shape, club limit, free-transfer cap and chip windows, so the squad builder never hard-codes a game rule.
+
+**Honest labels for hand-entered squads.** Without a transfer history we can't know purchase prices, so selling prices are today's prices, labelled as an estimate that may run slightly high. Bank and free transfers are labelled "Set by you". There's no past-gameweek history.

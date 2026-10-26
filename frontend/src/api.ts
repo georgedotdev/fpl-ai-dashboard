@@ -279,3 +279,52 @@ export function getBestPicks(params: { horizon: number; position?: string; max_p
 export function getFixtures(horizon: number): Promise<FixturesResponse> {
   return request(`/fdr${query({ horizon })}`);
 }
+
+// --- squads entered by hand, and this season's rules ------------------------------------
+
+export interface ManualSquad {
+  player_ids: number[];
+  bank: number; // tenths of £1m
+  free_transfers: number;
+  chips_available: string[]; // "<chip>-<half>" keys from Rules.chips
+}
+
+export interface ChipRule {
+  key: string;
+  chip: string;
+  label: string;
+  half: number;
+  window_start: number;
+  window_end: number;
+  open_now: boolean;
+}
+
+export interface Rules {
+  season: string;
+  planning_gameweek: number | null;
+  squad_size: number;
+  positions: Record<Position, number>;
+  max_per_club: number;
+  max_free_transfers: number;
+  chips: ChipRule[];
+}
+
+export function getRules(): Promise<Rules> {
+  return request("/rules");
+}
+
+function post<T>(path: string, body: unknown): Promise<T> {
+  return request(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+}
+
+export function getManualState(squad: ManualSquad): Promise<ManagerState> {
+  return post("/manual/state", squad);
+}
+
+export function getManualRecommendations(squad: ManualSquad, horizon: number): Promise<Recommendations> {
+  return post(`/manual/recommendations${query({ horizon })}`, squad);
+}
+
+export function getManualExplanation(squad: ManualSquad, horizon: number, plan: number): Promise<Explanation> {
+  return post(`/manual/recommendations/explanation${query({ horizon, plan })}`, squad);
+}
