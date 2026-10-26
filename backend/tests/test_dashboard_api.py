@@ -138,3 +138,11 @@ def test_best_xi_is_a_legal_squad_within_budget(api):  # noqa: F811
     assert body["captain"]["player_id"] in {p["player_id"] for p in body["lineup"]}
     assert body["bench"][0]["position"] == "GKP"
     assert {"price", "status", "news", "fixtures"} <= set(body["lineup"][0])
+
+
+def test_recommendations_include_the_current_squad_in_slot_order(api):  # noqa: F811
+    client, _ = api
+    body = client.get("/recommendations/42?horizon=2").json()
+    assert [p["player_id"] for p in body["current"]] == list(range(1, 16))
+    assert body["current_captain"] == 13 and body["current_vice_captain"] == 9
+    assert all("xp" in p and "fixtures" in p for p in body["current"])

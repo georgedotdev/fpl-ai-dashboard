@@ -5,7 +5,7 @@ import { SourceBadge } from "./SourceBadge";
 
 function Stat({ label, value, sourced }: { label: string; value: string; sourced: Sourced<unknown> }) {
   return (
-    <div className="rounded-lg border border-line p-3">
+    <div className="rounded-xl bg-raised p-3">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs text-faint">{label}</span>
         <SourceBadge source={sourced.source} note={sourced.note} />
@@ -43,7 +43,7 @@ function FreeTransfers({
   }
 
   return (
-    <div className="rounded-lg border border-line p-3">
+    <div className="rounded-xl bg-raised p-3">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs text-faint">
           Free transfers{state.planning_gameweek ? ` for GW${state.planning_gameweek}` : ""}
@@ -112,14 +112,16 @@ export function Summary({
   state,
   onSetFreeTransfers,
   canResetFreeTransfers = true,
+  compact = false,
 }: {
   state: ManagerState;
   onSetFreeTransfers: (value: number | null) => Promise<void>;
   // False when there's no derived value to go back to (a squad entered by hand).
   canResetFreeTransfers?: boolean;
+  compact?: boolean; // two columns, for a dashboard box
 }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className={compact ? "grid grid-cols-2 gap-2" : "grid gap-3 sm:grid-cols-2 lg:grid-cols-4"}>
       <Stat label="Money in the bank" value={money(state.bank.value)} sourced={state.bank} />
       <Stat label="Team value" value={money(state.team_value.value)} sourced={state.team_value} />
       <Stat label="Value if you sold everyone" value={money(state.sale_value.value)} sourced={state.sale_value} />

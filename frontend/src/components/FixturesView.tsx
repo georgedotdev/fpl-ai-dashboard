@@ -5,7 +5,7 @@ import { Card } from "./Card";
 import { ErrorBox, Loading, Select, Toolbar, fdrClass, horizonOptions } from "./ui";
 
 /** The fixture ticker in FPL's difficulty colours, teams with the easiest run first. */
-export function FdrGrid({ data }: { data: FixturesResponse }) {
+export function FdrGrid({ data, limit }: { data: FixturesResponse; limit?: number }) {
   return (
     <div className="-mx-1 overflow-x-auto px-1">
       <table className="w-full min-w-[22rem] border-separate border-spacing-1 text-xs">
@@ -23,7 +23,7 @@ export function FdrGrid({ data }: { data: FixturesResponse }) {
           </tr>
         </thead>
         <tbody>
-          {data.teams.map((team) => (
+          {data.teams.slice(0, limit ?? data.teams.length).map((team) => (
             <tr key={team.team_id}>
               <td className="pr-2 font-semibold" title={team.name}>
                 {team.short_name}

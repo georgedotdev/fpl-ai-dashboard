@@ -100,6 +100,11 @@ class Recommendations(BaseModel):
     free_transfers: Sourced[int | None]
     squad_gameweek: int
     no_transfers_expected_points: float  # no transfers and no chips
+    # The squad as it stands (before any recommended move), in FPL's slot order: 1-11 the XI,
+    # 12-15 the bench; with each player's expected points for the first planning gameweek.
+    current: list[PickedPlayer]
+    current_captain: int | None
+    current_vice_captain: int | None
     plans: list[RecommendedPlan]
     chips: list[ChipAdvice]
     notes: list[str]
@@ -278,6 +283,9 @@ def recommend(
         free_transfers=state.free_transfers,
         squad_gameweek=state.squad_gameweek,
         no_transfers_expected_points=hold.expected_points,
+        current=[picked_player(game, xp, p.player_id, 0) for p in sorted(state.squad, key=lambda p: p.slot)],
+        current_captain=next((p.player_id for p in state.squad if p.is_captain), None),
+        current_vice_captain=next((p.player_id for p in state.squad if p.is_vice_captain), None),
         plans=out,
         chips=advice,
         notes=notes,

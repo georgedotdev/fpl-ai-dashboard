@@ -48,7 +48,8 @@ def recommendations(moves=(), hits=0, chip=None, free_transfers=1, next_ft=2):
     return Recommendations(
         team_id=42, model="baseline", gameweeks=[9, 10], decay=0.85,
         bank=Sourced(value=8, source="api"), free_transfers=Sourced(value=free_transfers, source="derived"),
-        squad_gameweek=8, no_transfers_expected_points=113.7, plans=[plan], chips=[], notes=[],
+        squad_gameweek=8, no_transfers_expected_points=113.7, current=[], current_captain=None,
+        current_vice_captain=None, plans=[plan], chips=[], notes=[],
     ), plan
 
 

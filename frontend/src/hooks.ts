@@ -21,3 +21,16 @@ export function useData<T>(load: () => Promise<T>, deps: unknown[]) {
 
   return { data, error, loading };
 }
+
+/** True while a CSS media query matches; follows the window as it resizes or rotates. */
+export function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const onChange = () => setMatches(mq.matches);
+    onChange();
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, [query]);
+  return matches;
+}

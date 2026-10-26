@@ -25,7 +25,7 @@ function detail(chip: ChipStatus): string {
 export function Chips({ chips }: { chips: ChipStatus[] }) {
   const halves = [...new Set(chips.map((c) => c.half))].sort();
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid gap-4 @[34rem]:grid-cols-2">
       {halves.map((half) => {
         const inHalf = chips.filter((c) => c.half === half);
         return (

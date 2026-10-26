@@ -46,7 +46,7 @@ export function ExpandRow({
       </button>
       <div id={id} className={`expand ${open ? "open" : ""}`}>
         <div>
-          <div className="reveal px-5 pb-5">{children}</div>
+          <div className="reveal @container px-5 pb-5">{children}</div>
         </div>
       </div>
     </section>

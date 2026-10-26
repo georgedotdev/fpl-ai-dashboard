@@ -154,7 +154,7 @@ export function Pitch({
 /** The bench in substitution order, goalkeeper first. */
 export function Bench({ players }: { players: PickedPlayer[] }) {
   return (
-    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Bench">
+    <div className="mt-3 grid grid-cols-2 gap-2 @[34rem]:grid-cols-4" aria-label="Bench">
       {players.map((p) => (
         <div key={p.player_id} className="flex min-w-0 items-center gap-1.5 rounded-xl bg-raised p-2">
           <Shirt team={p.team_short_name} size={22} className="flex-none" />

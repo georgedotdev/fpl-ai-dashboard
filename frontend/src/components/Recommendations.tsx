@@ -31,69 +31,77 @@ export type Plans = ReturnType<typeof usePlans>;
 
 function Move({ move, gameweeks }: { move: MovePlan; gameweeks: number[] }) {
   const { player_out: out, player_in: inn } = move;
+  const [open, setOpen] = useState(false);
   const max = Math.max(...out.xp, ...inn.xp, 0.1);
   return (
-    <li className="rounded-[14px] bg-raised p-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="font-semibold">
+    <li className="rounded-[14px] bg-raised">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className="grid w-full grid-cols-[1fr_auto] items-center gap-x-3 gap-y-0.5 p-3 text-left"
+      >
+        <span className="min-w-0 font-semibold">
           <span className="font-medium text-faint line-through">{out.web_name}</span>
           <span className="mx-1.5 text-faint">→</span>
           {inn.web_name}
-          <span className="ml-2 text-xs font-normal text-faint">
-            {inn.position} · {inn.team_short_name}
-          </span>
-        </p>
-        <span className="num text-sm font-bold text-accent">+{points(move.xp_gain)} xP</span>
-      </div>
-      <div className="mt-2.5 grid grid-cols-5 gap-1.5" aria-hidden="true">
-        {gameweeks.map((gw, i) => (
-          <div key={gw} className="flex flex-col items-center gap-1 text-[11px] text-faint">
-            <div className="flex h-11 items-end gap-[3px]">
-              <i className="w-2 rounded-t-[3px] bg-line" style={{ height: `${(out.xp[i] / max) * 44}px` }} />
-              <i className="w-2 rounded-t-[3px] bg-accent" style={{ height: `${(inn.xp[i] / max) * 44}px` }} />
-            </div>
-            GW{gw}
-          </div>
-        ))}
-      </div>
-      <div className="mt-2 overflow-x-auto">
-        <table className="num w-full min-w-[20rem] text-xs">
-          <thead>
-            <tr className="text-faint">
-              <th className="py-0.5 text-left font-medium" />
-              {gameweeks.map((gw) => (
-                <th key={gw} className="py-0.5 text-right font-medium">
-                  GW{gw}
-                </th>
-              ))}
-              <th className="py-0.5 text-right font-medium">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[
-              { p: out, label: `sell ~${money(out.price)}` },
-              { p: inn, label: `buy ${money(inn.price)}` },
-            ].map(({ p, label }) => (
-              <tr key={p.player_id}>
-                <td className="py-0.5 pr-2 text-left">
-                  {p.web_name} <span className="text-faint">· {label}</span>
-                </td>
-                {p.xp.map((v, i) => (
-                  <td key={i} className="py-0.5 text-right" title={p.fixtures[i].join(", ") || "No fixture"}>
-                    {p.fixtures[i].length === 0 ? "–" : points(v)}
-                  </td>
-                ))}
-                <td className="py-0.5 text-right font-semibold">{points(p.xp_total)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+        </span>
+        <span className="num text-sm font-bold text-accent">+{points(move.xp_gain)}</span>
+        <span className="text-xs text-faint">
+          {inn.position} · {inn.team_short_name} · sell ~{money(out.price)} · buy {money(inn.price)}
+        </span>
+        <span className="text-xs text-faint">{open ? "Hide" : "GW by GW"}</span>
+      </button>
       {out.status !== "a" && out.news && (
-        <p className="mt-1 text-xs text-warn">
+        <p className="-mt-1 px-3 pb-2 text-xs text-warn">
           {out.web_name}: {out.news}
         </p>
       )}
+      <div className={`expand ${open ? "open" : ""}`}>
+        <div>
+          <div className="reveal px-3 pb-3">
+            <div className="grid grid-cols-5 gap-1.5" aria-hidden="true">
+              {gameweeks.map((gw, i) => (
+                <div key={gw} className="flex flex-col items-center gap-1 text-[11px] text-faint">
+                  <div className="flex h-11 items-end gap-[3px]">
+                    <i className="w-2 rounded-t-[3px] bg-line" style={{ height: `${(out.xp[i] / max) * 44}px` }} />
+                    <i className="w-2 rounded-t-[3px] bg-accent" style={{ height: `${(inn.xp[i] / max) * 44}px` }} />
+                  </div>
+                  GW{gw}
+                </div>
+              ))}
+            </div>
+            <div className="mt-2 overflow-x-auto">
+              <table className="num w-full min-w-[18rem] text-xs">
+                <thead>
+                  <tr className="text-faint">
+                    <th className="py-0.5 text-left font-medium" />
+                    {gameweeks.map((gw) => (
+                      <th key={gw} className="py-0.5 text-right font-medium">
+                        GW{gw}
+                      </th>
+                    ))}
+                    <th className="py-0.5 text-right font-medium">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[out, inn].map((p) => (
+                    <tr key={p.player_id}>
+                      <td className="py-0.5 pr-2 text-left">{p.web_name}</td>
+                      {p.xp.map((v, i) => (
+                        <td key={i} className="py-0.5 text-right" title={p.fixtures[i].join(", ") || "No fixture"}>
+                          {p.fixtures[i].length === 0 ? "–" : points(v)}
+                        </td>
+                      ))}
+                      <td className="py-0.5 text-right font-semibold">{points(p.xp_total)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
     </li>
   );
 }
@@ -155,7 +163,7 @@ function Why({ source, horizon, rank }: { source: PlanSource; horizon: number; r
 }
 
 /** Everything about the recommended moves: plans, horizon, reasons, week-by-week detail. */
-export function MovesDetail({ plans, source }: { plans: Plans; source: PlanSource }) {
+export function MovesDetail({ plans, source, compact = false }: { plans: Plans; source: PlanSource; compact?: boolean }) {
   const { data, error, loading, plan, horizon, setHorizon, selected, setSelected } = plans;
   const first: GameweekRecommendation | undefined = plan?.gameweeks[0];
   return (
@@ -186,8 +194,6 @@ export function MovesDetail({ plans, source }: { plans: Plans; source: PlanSourc
       {error && <ErrorBox message={error} />}
       {data && plan && first && !loading && (
         <>
-          <h3 className="mb-2 font-semibold">{plan.headline}</h3>
-          <Why source={source} horizon={horizon} rank={plan.rank} />
           {first.chip && (
             <p className="mb-2 text-sm">
               <ChipBadge label={first.chip} /> <span className="ml-1">Play it this gameweek.</span>
@@ -206,16 +212,40 @@ export function MovesDetail({ plans, source }: { plans: Plans; source: PlanSourc
             GW{first.gameweek}: {first.hits > 0 ? `${first.hits} hit${first.hits > 1 ? "s" : ""} (−${first.hit_points}), ` : "no hits, "}
             {money(first.bank)} left in the bank, {points(first.expected_points)} expected points from the XI and captain.
           </p>
+          {compact ? (
+            <details className="mt-3 text-sm">
+              <summary className="cursor-pointer font-medium text-accent">Why these moves</summary>
+              <div className="mt-2">
+                <Why source={source} horizon={horizon} rank={plan.rank} />
+              </div>
+            </details>
+          ) : (
+            <div className="mt-3">
+              <Why source={source} horizon={horizon} rank={plan.rank} />
+            </div>
+          )}
           <LaterGameweeks plan={plan} />
-          <ul className="mt-4 space-y-0.5 text-xs text-faint">
-            <li>
-              Plans are ranked by expected points over GW{data.gameweeks[0]}–{data.gameweeks[data.gameweeks.length - 1]}, with nearer
-              gameweeks counting more, so a plan with slightly more raw points can rank lower.
-            </li>
-            {data.notes.map((n) => (
-              <li key={n}>{n}</li>
-            ))}
-          </ul>
+          {(() => {
+            const notes = (
+              <ul className="mt-2 space-y-0.5 text-xs text-faint">
+                <li>
+                  Plans are ranked by expected points over GW{data.gameweeks[0]}–{data.gameweeks[data.gameweeks.length - 1]}, with nearer
+                  gameweeks counting more, so a plan with slightly more raw points can rank lower.
+                </li>
+                {data.notes.map((n) => (
+                  <li key={n}>{n}</li>
+                ))}
+              </ul>
+            );
+            return compact ? (
+              <details className="mt-3 text-sm">
+                <summary className="cursor-pointer font-medium text-accent">About these numbers</summary>
+                {notes}
+              </details>
+            ) : (
+              <div className="mt-2">{notes}</div>
+            );
+          })()}
         </>
       )}
     </div>
@@ -225,7 +255,7 @@ export function MovesDetail({ plans, source }: { plans: Plans; source: PlanSourc
 /** Captain, vice-captain and bench order for the plan's first gameweek. */
 export function PlanPicks({ gw }: { gw: GameweekRecommendation }) {
   return (
-    <div className="grid gap-2 text-sm sm:grid-cols-3">
+    <div className="grid grid-cols-2 gap-2 text-sm @[30rem]:grid-cols-3">
       <div className="rounded-xl bg-raised p-3">
         <div className="text-xs text-faint">Captain</div>
         <div className="font-semibold">
@@ -236,7 +266,7 @@ export function PlanPicks({ gw }: { gw: GameweekRecommendation }) {
         <div className="text-xs text-faint">Vice-captain</div>
         <div className="font-semibold">{gw.vice_captain.web_name}</div>
       </div>
-      <div className="rounded-xl bg-raised p-3">
+      <div className="col-span-2 rounded-xl bg-raised p-3 @[30rem]:col-span-1">
         <div className="text-xs text-faint">Bench order</div>
         <div className="font-semibold">{gw.bench.map((p) => p.web_name).join(", ")}</div>
       </div>
@@ -248,7 +278,7 @@ export function ChipsAdvice({ chips }: { chips: ChipAdvice[] }) {
   if (chips.length === 0) return null;
   return (
     <div className="mt-3">
-      <ul className="grid gap-2 sm:grid-cols-2">
+      <ul className="grid gap-2 @[34rem]:grid-cols-2">
         {chips.map((c) => (
           <li
             key={`${c.chip}-${c.half}`}

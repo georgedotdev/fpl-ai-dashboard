@@ -303,3 +303,26 @@ Nothing was removed: every control and figure from before is inside one of these
 **Best XI** (`GET /best-xi`): the strongest 15 for the next gameweek from every player, within the £100m budget and the squad rules (a Free Hit team, whatever you own). It's the same optimizer with an empty squad and unlimited transfers, cached until the predictions change. A switch on the pitch flips between Your XI (after the recommended moves) and Best XI; players in both slide to their new places.
 
 **Not copied:** FPL's logo and their typeface (proprietary; Inter is used). Using their colours makes the app look close to FPL's; once it's public, that's worth keeping in mind.
+
+---
+
+## D-017: A dashboard around the team, its own layout on phones
+
+- **Date:** 2026-10-26
+- **Status:** Decided by the owner
+
+**Decision.** The pitch switches between three teams:
+
+- **Now:** the squad as picked at the last deadline, with its own captain.
+- **After moves:** after the recommended transfers.
+- **Best XI:** for whoever-you-own.
+
+`GET /recommendations` now includes the current squad with each player's expected points, so "Now" needs no extra request.
+
+The home screen is laid out by screen size (one set of data and boxes, three arrangements chosen with a media query):
+
+- **Desktop (1280px and up):** full page width, the team in the middle column, transfers top right, captain, bank and chips on the left, fixtures and price moves on the right, squad and recent gameweeks across the bottom.
+- **Tablet (768–1279px):** team and captain on the left, transfers, bank, fixtures and prices on the right.
+- **Phone:** the team, then the transfers, then four quick figures, then the rest as rows that expand. The reasons and notes fold behind toggles, and the section tabs move to a bottom bar within thumb reach.
+
+Boxes adapt to their own width (container queries), so the same box works in a narrow side column and a wide one.

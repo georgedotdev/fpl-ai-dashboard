@@ -235,6 +235,9 @@ export interface Recommendations {
   free_transfers: Sourced<number | null>;
   squad_gameweek: number;
   no_transfers_expected_points: number;
+  current: PickedPlayer[]; // the squad before any move, slots 1-11 then the bench
+  current_captain: number | null;
+  current_vice_captain: number | null;
   plans: RecommendedPlan[];
   chips: ChipAdvice[];
   notes: string[];
