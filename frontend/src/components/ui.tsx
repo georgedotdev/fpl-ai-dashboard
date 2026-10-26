@@ -1,15 +1,12 @@
 import type { ReactNode } from "react";
 
 export function Loading({ label = "Loading…" }: { label?: string }) {
-  return <p className="py-6 text-center text-sm text-slate-500 dark:text-slate-400">{label}</p>;
+  return <p className="py-6 text-center text-sm text-faint">{label}</p>;
 }
 
 export function ErrorBox({ message }: { message: string }) {
   return (
-    <div
-      role="alert"
-      className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-300"
-    >
+    <div role="alert" className="rounded-xl bg-negative/15 p-3 text-sm text-negative">
       {message}
     </div>
   );
@@ -27,7 +24,7 @@ export function Select<T extends string | number>({
   onChange: (value: T) => void;
 }) {
   return (
-    <label className="flex flex-col text-xs text-slate-500 dark:text-slate-400">
+    <label className="flex flex-col text-xs text-faint">
       {label}
       <select
         value={String(value)}
@@ -36,7 +33,7 @@ export function Select<T extends string | number>({
           const picked = options.find((o) => String(o.value) === e.target.value);
           if (picked) onChange(picked.value);
         }}
-        className={`${label ? "mt-1 " : ""}rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100`}
+        className={`${label ? "mt-1 " : ""}h-9 rounded-full border-0 bg-raised px-3 text-sm text-ink focus:ring-2 focus:ring-accent`}
       >
         {options.map((o) => (
           <option key={String(o.value)} value={String(o.value)}>
@@ -52,19 +49,19 @@ export function Toolbar({ children }: { children: ReactNode }) {
   return <div className="mb-4 flex flex-wrap items-end gap-3">{children}</div>;
 }
 
-/** FPL's fixture difficulty colours: 1-2 easy (green), 3 neutral, 4-5 hard (red). */
+/** FPL's own fixture difficulty colours, 1 (easy) to 5 (hard). */
 export function fdrClass(difficulty: number): string {
   switch (difficulty) {
     case 1:
-      return "bg-emerald-600 text-white";
+      return "bg-d1 text-d1-ink";
     case 2:
-      return "bg-emerald-200 text-emerald-950 dark:bg-emerald-800 dark:text-emerald-50";
+      return "bg-d2 text-d2-ink";
     case 3:
-      return "bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-100";
+      return "bg-d3 text-d3-ink";
     case 4:
-      return "bg-rose-300 text-rose-950 dark:bg-rose-800 dark:text-rose-50";
+      return "bg-d4 text-d4-ink";
     default:
-      return "bg-rose-700 text-white";
+      return "bg-d5 text-d5-ink";
   }
 }
 

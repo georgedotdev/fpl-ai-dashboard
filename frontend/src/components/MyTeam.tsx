@@ -84,11 +84,11 @@ function TeamIdMode({ onEnterByHand }: { onEnterByHand: () => void }) {
     <>
       {state && source ? (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-sm">
-          <span className="text-slate-500 dark:text-slate-400">
-            Team ID <span className="font-medium tabular-nums text-slate-900 dark:text-slate-100">{state.team_id}</span>{" "}
+          <span className="text-faint">
+            Team ID <span className="font-medium tabular-nums text-ink">{state.team_id}</span>{" "}
             · remembered on this device
           </span>
-          <button onClick={switchTeam} className="text-violet-700 hover:underline dark:text-violet-400">
+          <button onClick={switchTeam} className="text-accent hover:underline">
             Use a different team
           </button>
         </div>
@@ -109,12 +109,12 @@ function TeamIdMode({ onEnterByHand }: { onEnterByHand: () => void }) {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="1234567 or https://fantasy.premierleague.com/entry/1234567/…"
-                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 tabular-nums shadow-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-200 dark:border-slate-700 dark:bg-slate-900 dark:focus:ring-violet-900"
+                className="mt-1 w-full rounded-full border border-line bg-surface px-4 py-2 tabular-nums text-ink placeholder:text-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
               />
             </label>
             <button
               disabled={loading}
-              className="rounded-lg bg-violet-600 px-4 py-2 font-medium text-white shadow-sm hover:bg-violet-700 disabled:opacity-60"
+              className="rounded-full bg-accent px-5 py-2 font-bold text-accent-ink transition-transform hover:brightness-110 active:scale-95 disabled:opacity-60"
             >
               {loading ? "Loading…" : "Show my team"}
             </button>
@@ -195,8 +195,8 @@ function ManualMode() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-        <span className="text-slate-500 dark:text-slate-400">Squad entered by hand · saved on this device</span>
-        <button onClick={() => setEditing(true)} className="text-violet-700 hover:underline dark:text-violet-400">
+        <span className="text-faint">Squad entered by hand · saved on this device</span>
+        <button onClick={() => setEditing(true)} className="text-accent hover:underline">
           Edit squad
         </button>
       </div>
@@ -226,7 +226,7 @@ export function MyTeam() {
 
   return (
     <>
-      <div className="mb-4 inline-flex rounded-lg border border-slate-200 p-0.5 text-sm dark:border-slate-800" role="tablist">
+      <div className="mb-4 inline-flex rounded-full bg-surface p-[3px] text-sm" role="tablist">
         {(
           [
             ["team", "Use my team ID"],
@@ -238,10 +238,10 @@ export function MyTeam() {
             role="tab"
             aria-selected={mode === id}
             onClick={() => choose(id)}
-            className={`rounded-md px-3 py-1.5 font-medium ${
+            className={`rounded-full px-4 py-1.5 font-semibold transition-colors ${
               mode === id
-                ? "bg-violet-600 text-white"
-                : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                ? "bg-accent text-accent-ink"
+                : "text-muted hover:text-ink"
             }`}
           >
             {label}

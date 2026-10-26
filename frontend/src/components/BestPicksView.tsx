@@ -20,11 +20,11 @@ function PositionList({ position, label, horizon, maxPrice }: { position: string
   );
   return (
     <div>
-      <h3 className="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">{label}</h3>
+      <h3 className="mb-2 text-xs font-medium text-faint">{label}</h3>
       {error && <ErrorBox message={error} />}
       {loading && !data && <Loading />}
       {data && (
-        <ol className={`divide-y divide-slate-100 dark:divide-slate-800 ${loading ? "opacity-60" : ""}`}>
+        <ol className={`divide-y divide-line ${loading ? "opacity-60" : ""}`}>
           {data.players.map((p) => (
             <li key={p.player_id} className="flex items-center gap-3 py-2">
               <div className="min-w-0 flex-1">
@@ -32,17 +32,17 @@ function PositionList({ position, label, horizon, maxPrice }: { position: string
                   {p.web_name}
                   <Availability player={p} />
                 </div>
-                <div className="truncate text-xs text-slate-500 dark:text-slate-400">
+                <div className="truncate text-xs text-faint">
                   {p.team_short_name} · {p.upcoming.join(", ")}
                 </div>
               </div>
               <div className="text-right text-sm tabular-nums">
                 <div className="font-semibold">{p.xp_horizon.toFixed(1)} xP</div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">{money(p.now_cost)}</div>
+                <div className="text-xs text-faint">{money(p.now_cost)}</div>
               </div>
             </li>
           ))}
-          {data.players.length === 0 && <li className="py-2 text-sm text-slate-500">Nobody at this price.</li>}
+          {data.players.length === 0 && <li className="py-2 text-sm text-faint">Nobody at this price.</li>}
         </ol>
       )}
     </div>

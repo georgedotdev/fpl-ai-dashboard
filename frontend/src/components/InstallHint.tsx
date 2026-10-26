@@ -37,8 +37,8 @@ export function InstallHint() {
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-violet-200 bg-violet-50 p-3 text-sm dark:border-violet-900 dark:bg-violet-950">
-      <p className="text-violet-900 dark:text-violet-200">
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-raised p-3 text-sm">
+      <p className="text-muted">
         {prompt ? (
           <>Add FPL Assistant to your home screen: it'll open straight to your team.</>
         ) : (
@@ -54,12 +54,12 @@ export function InstallHint() {
             onClick={() => {
               void prompt.prompt().finally(() => setPrompt(null));
             }}
-            className="rounded-md bg-violet-600 px-3 py-1.5 font-medium text-white hover:bg-violet-700"
+            className="rounded-full bg-accent px-4 py-1.5 font-bold text-accent-ink hover:brightness-110"
           >
             Install
           </button>
         )}
-        <button onClick={dismiss} className="px-2 py-1.5 text-violet-700 hover:underline dark:text-violet-300">
+        <button onClick={dismiss} className="px-2 py-1.5 text-accent hover:underline">
           Not now
         </button>
       </div>

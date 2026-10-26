@@ -272,3 +272,34 @@ The full cost applies while 4 or more gameweeks of the window remain after the w
 `GET /rules` exposes squad shape, club limit, free-transfer cap and chip windows, so the squad builder never hard-codes a game rule.
 
 **Honest labels for hand-entered squads.** Without a transfer history we can't know purchase prices, so selling prices are today's prices, labelled as an estimate that may run slightly high. Bank and free transfers are labelled "Set by you". There's no past-gameweek history.
+
+---
+
+## D-016: The FPL look, and a live Best XI
+
+- **Date:** 2026-10-26
+- **Status:** Decided by the owner (from three mockups in `design/mockups/`: option A, recoloured)
+
+**Decision.** One dark theme, using FPL's own palette taken from the design tokens on fantasy.premierleague.com:
+
+- **Surfaces:** their purple scale (`#1e0021` → `#28002b` → `#37003c`).
+- **Green `#00ff87`:** on the data and the main button, with purple text on it.
+- **Fixtures:** their five difficulty colours.
+- **Theme tokens:** all of it lives in `frontend/src/index.css`, and no component carries a hard-coded colour.
+
+**The home screen** puts the team first: the XI on a pitch, as FPL-style player cards (club shirt on glass, a white name bar that turns yellow, orange or red with the chance of playing, the fixture underneath, the captain's badge and an expected-points tag). Every other part sits in one-line rows that expand in place:
+
+- moves and plans
+- captain
+- fixtures
+- chips
+- price moves
+- bank and free transfers (the correction lives here)
+- squad and selling prices
+- recent gameweeks
+
+Nothing was removed: every control and figure from before is inside one of these rows. Players, Fixtures, Captains and Best picks keep their own tabs.
+
+**Best XI** (`GET /best-xi`): the strongest 15 for the next gameweek from every player, within the £100m budget and the squad rules (a Free Hit team, whatever you own). It's the same optimizer with an empty squad and unlimited transfers, cached until the predictions change. A switch on the pitch flips between Your XI (after the recommended moves) and Best XI; players in both slide to their new places.
+
+**Not copied:** FPL's logo and their typeface (proprietary; Inter is used). Using their colours makes the app look close to FPL's; once it's public, that's worth keeping in mind.

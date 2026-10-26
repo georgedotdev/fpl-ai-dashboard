@@ -27,6 +27,8 @@ The system is split into a **prediction brain** (how many points will each playe
 - **Predictions** come from a transparent baseline: form and season scoring rate, × fixture difficulty, × availability (including return dates parsed from injury news). They sit behind one `XPMatrix` interface, so the Stage 3 model can replace them without touching anything else.
 - **Explanations** (`GET /recommendations/{team_id}/explanation`): a few plain-English sentences on why, written only from the plan's facts by a **local** language model (Ollama, no API key or per-use cost) or by templates. Every number is checked against the facts in code before it's shown; a draft that fails falls back to the template.
 - **No team ID? No problem.** The team box accepts the number or any FPL link; the team is remembered on the device; the page installs to a phone's home screen; and a squad can be **entered by hand** (`/manual/*` endpoints) when the ID can't be found. The FPL app doesn't show team IDs and FPL has no name search, so these are the ways in.
+- **Best XI** (`GET /best-xi`): the strongest squad for the next gameweek from every player within the budget, a Free Hit team whatever you own. The home pitch switches between it and your XI.
+- **Design:** a dark theme in FPL's own palette, the team on a pitch as FPL-style player cards, and everything else in rows that expand in place. Mockups of the options considered are in `design/mockups/`.
 - **Dashboard views:** player list with prices, price changes and xP (`/players`); fixture difficulty ticker (`/fdr`); best captains (`/captaincy`); best players for the coming fixtures (`/picks/best-by-fixtures`).
 
 ## Run it locally

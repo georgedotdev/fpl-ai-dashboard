@@ -27,7 +27,10 @@ def facts_player(pid, name, price, xp, status="a", news="", difficulty=3):
 
 
 def picked(pid, name, xp):
-    return PickedPlayer(player_id=pid, web_name=name, position="FWD", team_short_name="AAA", xp=xp, fixtures=["BBB (H)"])
+    return PickedPlayer(
+        player_id=pid, web_name=name, position="FWD", team_short_name="AAA", xp=xp, fixtures=["BBB (H)"],
+        price=100, status="a", chance_of_playing_next_round=None, news="", selected_by_percent=10.0,
+    )
 
 
 def recommendations(moves=(), hits=0, chip=None, free_transfers=1, next_ft=2):

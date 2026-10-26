@@ -95,7 +95,7 @@ export function ManualSquadBuilder({
 
   return (
     <Card title="Enter your squad">
-      <p className="mb-4 text-sm text-slate-600 dark:text-slate-300">
+      <p className="mb-4 text-sm text-muted">
         No team ID needed: pick your {r.squad_size} players and tell us your bank, free transfers and chips. It's saved on
         this device, so next time you only change what's different.
       </p>
@@ -105,7 +105,7 @@ export function ManualSquadBuilder({
           {POSITIONS.map(({ code, label }) => (
             <div key={code}>
               <div className="mb-1 flex items-baseline justify-between">
-                <h3 className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</h3>
+                <h3 className="text-xs font-medium text-faint">{label}</h3>
                 <button
                   onClick={() => {
                     // On a phone the search sits below the squad: take the user to it.
@@ -113,7 +113,7 @@ export function ManualSquadBuilder({
                     searchRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
                     searchRef.current?.focus({ preventScroll: true });
                   }}
-                  className={`text-xs tabular-nums ${count(code) === r.positions[code] ? "text-emerald-700 dark:text-emerald-400" : "text-violet-700 hover:underline dark:text-violet-400"}`}
+                  className={`text-xs tabular-nums ${count(code) === r.positions[code] ? "text-accent" : "text-accent hover:underline"}`}
                 >
                   {count(code)}/{r.positions[code]}
                   {count(code) < r.positions[code] ? " · add" : ""}
@@ -123,13 +123,13 @@ export function ManualSquadBuilder({
                 {pickedPlayers
                   .filter((p) => p.position === code)
                   .map((p) => (
-                    <li key={p.player_id} className="flex items-center gap-1 rounded-full border border-slate-300 py-0.5 pl-2.5 pr-1 text-sm dark:border-slate-700">
+                    <li key={p.player_id} className="flex items-center gap-1 rounded-full border border-line py-0.5 pl-2.5 pr-1 text-sm">
                       {p.web_name}
-                      <span className="text-xs text-slate-500 dark:text-slate-400">{p.team_short_name}</span>
+                      <span className="text-xs text-faint">{p.team_short_name}</span>
                       <button
                         onClick={() => remove(p.player_id)}
                         aria-label={`Remove ${p.web_name}`}
-                        className="ml-0.5 rounded-full px-1.5 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700"
+                        className="ml-0.5 rounded-full px-1.5 text-faint hover:bg-raised-2"
                       >
                         ×
                       </button>
@@ -139,8 +139,8 @@ export function ManualSquadBuilder({
             </div>
           ))}
 
-          <div className="grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 dark:border-slate-800">
-            <label className="text-xs text-slate-500 dark:text-slate-400">
+          <div className="grid grid-cols-2 gap-3 border-t border-line pt-4">
+            <label className="text-xs text-faint">
               Money in the bank (£m)
               <input
                 inputMode="decimal"
@@ -150,10 +150,10 @@ export function ManualSquadBuilder({
                   const tenths = Math.round(Number(e.target.value) * 10);
                   if (Number.isFinite(tenths) && tenths >= 0) update({ bank: tenths });
                 }}
-                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm tabular-nums text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                className="mt-1 w-full rounded-md border border-line bg-surface px-2 py-1.5 text-sm tabular-nums text-ink"
               />
             </label>
-            <label className="text-xs text-slate-500 dark:text-slate-400">
+            <label className="text-xs text-faint">
               Free transfers for GW{r.planning_gameweek}
               <select
                 value={freeTransfers}
@@ -161,7 +161,7 @@ export function ManualSquadBuilder({
                   setFreeTransfers(Number(e.target.value));
                   update({ free_transfers: Number(e.target.value) });
                 }}
-                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                className="mt-1 w-full rounded-md border border-line bg-surface px-2 py-1.5 text-sm text-ink"
               >
                 {Array.from({ length: r.max_free_transfers + 1 }, (_, n) => (
                   <option key={n} value={n}>
@@ -174,7 +174,7 @@ export function ManualSquadBuilder({
 
           {openChips.length > 0 && (
             <fieldset>
-              <legend className="text-xs text-slate-500 dark:text-slate-400">Chips you still have</legend>
+              <legend className="text-xs text-faint">Chips you still have</legend>
               <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
                 {openChips.map((c) => (
                   <label key={c.key} className="flex items-center gap-1.5 text-sm">
@@ -198,7 +198,7 @@ export function ManualSquadBuilder({
           <button
             disabled={!complete || !bankValid || submitting}
             onClick={() => onSubmit(draft({}))}
-            className="w-full rounded-lg bg-violet-600 px-4 py-2.5 font-medium text-white shadow-sm hover:bg-violet-700 disabled:opacity-50"
+            className="w-full rounded-lg bg-accent px-4 py-2.5 font-medium text-accent-ink hover:brightness-110 disabled:opacity-50"
           >
             {submitting
               ? "Loading…"
@@ -216,13 +216,13 @@ export function ManualSquadBuilder({
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search players or a team (e.g. ARS)"
               aria-label="Search players"
-              className="min-w-0 flex-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className="min-w-0 flex-1 rounded-md border border-line bg-surface px-3 py-1.5 text-sm text-ink"
             />
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value as Position | "")}
               aria-label="Position"
-              className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className="rounded-md border border-line bg-surface px-2 py-1.5 text-sm text-ink"
             >
               <option value="">All</option>
               {POSITIONS.map((p) => (
@@ -232,30 +232,30 @@ export function ManualSquadBuilder({
               ))}
             </select>
           </div>
-          <ul className="max-h-[28rem] divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+          <ul className="max-h-[28rem] divide-y divide-line overflow-y-auto rounded-lg border border-line">
             {matches.map((p) => {
               const blocked = whyNot(p);
               return (
                 <li key={p.player_id} className="flex items-center gap-3 px-3 py-2">
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium">{p.web_name}</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                    <div className="text-xs text-faint">
                       {p.team_short_name} · {p.position} · {money(p.now_cost)}
                     </div>
                   </div>
                   <button
                     disabled={!!blocked}
                     onClick={() => add(p.player_id)}
-                    className="shrink-0 rounded-md border border-violet-300 px-2.5 py-1 text-xs font-medium text-violet-700 hover:bg-violet-50 disabled:border-slate-200 disabled:text-slate-400 dark:border-violet-800 dark:text-violet-300 dark:hover:bg-violet-950 dark:disabled:border-slate-800"
+                    className="shrink-0 rounded-md border border-accent px-2.5 py-1 text-xs font-medium text-accent hover:brightness-110 disabled:border-line disabled:text-faint"
                   >
                     {blocked ?? "Add"}
                   </button>
                 </li>
               );
             })}
-            {matches.length === 0 && <li className="px-3 py-2 text-sm text-slate-500">No players match.</li>}
+            {matches.length === 0 && <li className="px-3 py-2 text-sm text-faint">No players match.</li>}
           </ul>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Most-owned players first.</p>
+          <p className="mt-1 text-xs text-faint">Most-owned players first.</p>
         </div>
       </div>
     </Card>

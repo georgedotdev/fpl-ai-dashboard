@@ -5,13 +5,13 @@ import { SourceBadge } from "./SourceBadge";
 
 function Stat({ label, value, sourced }: { label: string; value: string; sourced: Sourced<unknown> }) {
   return (
-    <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+    <div className="rounded-lg border border-line p-3">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs text-slate-500 dark:text-slate-400">{label}</span>
+        <span className="text-xs text-faint">{label}</span>
         <SourceBadge source={sourced.source} note={sourced.note} />
       </div>
       <div className="mt-1 text-2xl font-semibold tabular-nums">{value}</div>
-      {sourced.note && <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{sourced.note}</p>}
+      {sourced.note && <p className="mt-1 text-xs text-faint">{sourced.note}</p>}
     </div>
   );
 }
@@ -43,9 +43,9 @@ function FreeTransfers({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+    <div className="rounded-lg border border-line p-3">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs text-slate-500 dark:text-slate-400">
+        <span className="text-xs text-faint">
           Free transfers{state.planning_gameweek ? ` for GW${state.planning_gameweek}` : ""}
         </span>
         <SourceBadge source={ft.source} note={ft.note} />
@@ -64,17 +64,17 @@ function FreeTransfers({
             max={maxBanked}
             value={draft}
             onChange={(e) => setDraft(Number(e.target.value))}
-            className="w-16 rounded-md border border-slate-300 bg-transparent px-2 py-1 text-xl font-semibold tabular-nums dark:border-slate-700"
+            className="w-16 rounded-md border border-line bg-transparent px-2 py-1 text-xl font-semibold tabular-nums"
             aria-label="Your free transfers"
             autoFocus
           />
           <button
             disabled={saving}
-            className="rounded-md bg-violet-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
+            className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink hover:brightness-110 disabled:opacity-50"
           >
             Save
           </button>
-          <button type="button" onClick={() => setEditing(false)} className="text-sm text-slate-500 hover:underline">
+          <button type="button" onClick={() => setEditing(false)} className="text-sm text-faint hover:underline">
             Cancel
           </button>
         </form>
@@ -87,7 +87,7 @@ function FreeTransfers({
                 setDraft(ft.value ?? 1);
                 setEditing(true);
               }}
-              className="whitespace-nowrap text-sm text-violet-700 hover:underline dark:text-violet-400"
+              className="whitespace-nowrap text-sm text-accent hover:underline"
             >
               Not right? Correct it
             </button>
@@ -96,14 +96,14 @@ function FreeTransfers({
             <button
               onClick={() => void save(null)}
               disabled={saving}
-              className="whitespace-nowrap text-sm text-slate-500 hover:underline"
+              className="whitespace-nowrap text-sm text-faint hover:underline"
             >
               Use derived value
             </button>
           )}
         </div>
       )}
-      {ft.note && <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{ft.note}</p>}
+      {ft.note && <p className="mt-1 text-xs text-faint">{ft.note}</p>}
     </div>
   );
 }

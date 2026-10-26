@@ -2,6 +2,7 @@
 
 import hashlib
 import time
+from datetime import datetime
 from functools import lru_cache
 from typing import Annotated
 
@@ -22,6 +23,7 @@ from app.manager.builder import NoSquadYet, build_manager_state
 from app.manager.manual import InvalidSquad, ManualSquad, build_manual_state
 from app.manager.overrides import get_override, set_free_transfers
 from app.manager.state import ManagerState
+from app.optimization.best_xi import BestXI, best_xi
 from app.optimization.recommend import Recommendations, recommend
 from app.optimization.solver import Infeasible
 from app.prediction import Predictor, XPMatrix, get_predictor
@@ -351,6 +353,7 @@ class ChipRule(BaseModel):
 class RulesResponse(BaseModel):
     season: str
     planning_gameweek: int | None
+    planning_deadline: datetime | None  # the next deadline, for countdowns
     squad_size: int
     positions: dict[str, int]
     max_per_club: int
@@ -366,6 +369,7 @@ def rules_for_clients(game: GameDep, rules: RulesDep) -> RulesResponse:
     return RulesResponse(
         season=rules.season,
         planning_gameweek=gw,
+        planning_deadline=upcoming.deadline_time if upcoming else None,
         squad_size=rules.squad.size,
         positions=rules.squad.positions,
         max_per_club=rules.squad.max_per_club,
@@ -379,3 +383,25 @@ def rules_for_clients(game: GameDep, rules: RulesDep) -> RulesResponse:
             for w in chip_windows(rules, game.bootstrap)
         ],
     )
+
+
+# --- best XI -----------------------------------------------------------------------------
+
+_best_xi_cache: dict[str, tuple[float, BestXI]] = {}
+
+
+@app.get("/best-xi")
+def get_best_xi(game: GameDep, predictor: PredictorDep, rules: RulesDep) -> BestXI:
+    """The best possible XI for the next gameweek from all players, within the season's budget."""
+    xp = _predict(game, predictor, 1)
+    key = hashlib.sha256(xp.model_dump_json().encode()).hexdigest()
+    hit = _best_xi_cache.get(key)
+    if hit and hit[0] > time.monotonic():
+        return hit[1]
+    try:
+        result = best_xi(game, xp, rules)
+    except Infeasible as exc:
+        raise HTTPException(422, f"Couldn't build a best XI: {exc}")
+    _best_xi_cache.clear()  # only the latest predictions matter
+    _best_xi_cache[key] = (time.monotonic() + RECOMMENDATION_TTL_S, result)
+    return result

@@ -49,6 +49,11 @@ class PickedPlayer(BaseModel):
     team_short_name: str
     xp: float
     fixtures: list[str]  # this gameweek's fixtures, e.g. ["BHA (H)"]
+    price: int
+    status: str
+    chance_of_playing_next_round: int | None
+    news: str
+    selected_by_percent: float
 
 
 class GameweekRecommendation(BaseModel):
@@ -98,6 +103,27 @@ class Recommendations(BaseModel):
     plans: list[RecommendedPlan]
     chips: list[ChipAdvice]
     notes: list[str]
+
+
+def picked_player(game: GameData, xp: XPMatrix, pid: int, t: int) -> PickedPlayer:
+    """A player as shown on the pitch for planning gameweek index t."""
+    e = game.players[pid]
+    return PickedPlayer(
+        player_id=pid,
+        web_name=e.web_name,
+        position=game.position(e),
+        team_short_name=game.teams[e.team].short_name,
+        xp=xp.expected_points[pid][t],
+        fixtures=[
+            f"{game.teams[f.opponent].short_name} ({'H' if f.home else 'A'})"
+            for f in game.team_fixtures(e.team, xp.gameweeks[t])
+        ],
+        price=e.now_cost,
+        status=e.status,
+        chance_of_playing_next_round=e.chance_of_playing_next_round,
+        news=e.news,
+        selected_by_percent=e.selected_by_percent,
+    )
 
 
 def build_candidates(state: ManagerState, game: GameData, xp: XPMatrix) -> list[Candidate]:
@@ -182,15 +208,7 @@ def recommend(
         )
 
     def picked(pid: int, t: int) -> PickedPlayer:
-        e = game.players[pid]
-        return PickedPlayer(
-            player_id=pid, web_name=e.web_name, position=by_id[pid].position,
-            team_short_name=game.teams[e.team].short_name, xp=by_id[pid].xp[t],
-            fixtures=[
-                f"{game.teams[f.opponent].short_name} ({'H' if f.home else 'A'})"
-                for f in game.team_fixtures(e.team, xp.gameweeks[t])
-            ],
-        )
+        return picked_player(game, xp, pid, t)
 
     out = []
     for rank, plan in enumerate(sorted(plans, key=lambda p: -p.objective), start=1):

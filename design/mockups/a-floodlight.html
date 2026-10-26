@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Option A · Floodlight</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Floodlight: true black, elevation by lightness alone, lime only on data. */
+:root {
+  --ground: #000; --surface: #111; --raised: #1c1c1c; --raised-2: #2a2a2a;
+  --text: #fff; --muted: #b4b4b4; --faint: #949494;
+  --accent: #c6f24e; --accent-bg: #222a10; --negative: #e5566f; --negative-bg: #2c1a20;
+  --radius: 20px; --gap: 14px; --pad: 20px;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+}
+* { box-sizing: border-box; margin: 0; }
+body { background: var(--ground); color: var(--text); font: 14px/20px Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+.num, .pxp, .tab-num { font-variant-numeric: tabular-nums; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
+
+.shell { max-width: 1240px; margin: 0 auto; padding: 0 16px 40px; }
+.top { display: flex; align-items: center; gap: 12px; height: 60px; }
+.mark { width: 28px; height: 28px; border-radius: 8px; background: var(--accent); display: grid; place-items: center; }
+.mark svg { width: 18px; height: 18px; }
+.brand { font-weight: 600; }
+.brand small { display: block; color: var(--faint); font-size: 12px; font-weight: 400; line-height: 14px; }
+.deadline { margin-left: auto; text-align: right; font-size: 12px; color: var(--faint); line-height: 16px; }
+.deadline strong { display: block; color: var(--text); font-size: 14px; font-weight: 500; }
+
+.title { padding: 12px 0 18px; }
+h1 { font-size: 20px; line-height: 28px; font-weight: 600; }
+.finding { color: var(--muted); margin-top: 2px; }
+.finding b { color: var(--accent); font-weight: 500; }
+
+.grid { display: grid; gap: var(--gap); }
+@media (min-width: 1024px) {
+  .shell { padding: 0 32px 48px; }
+  .grid { grid-template-columns: 7fr 5fr; align-items: start; }
+  .pitch-card { position: sticky; top: 16px; }
+}
+
+.card { background: var(--surface); border-radius: var(--radius); }
+.pitch-card { padding: var(--pad); }
+.pitch-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.seg { display: inline-flex; background: var(--raised); border-radius: 999px; padding: 3px; position: relative; }
+.seg button { position: relative; z-index: 1; height: 32px; padding: 0 14px; border-radius: 999px; color: var(--muted); font-weight: 500; transition: color .25s var(--ease); }
+.seg button[aria-pressed="true"] { color: #000; }
+.seg .thumb { position: absolute; top: 3px; bottom: 3px; border-radius: 999px; background: #fff; transition: transform .35s var(--ease), width .35s var(--ease); }
+.total { text-align: right; }
+.total .big { font-size: 24px; line-height: 28px; font-weight: 500; }
+.total .big small { font-size: 14px; color: var(--faint); font-weight: 400; }
+.total .vs { font-size: 12px; color: var(--faint); }
+
+/* the pitch, drawn in greys so the lime stays on data */
+.pitch { position: relative; aspect-ratio: 68 / 72; border-radius: 14px; overflow: hidden; background:
+  repeating-linear-gradient(180deg, #151515 0 12.5%, #121212 12.5% 25%); }
+.pitch svg.lines { position: absolute; inset: 0; width: 100%; height: 100%; }
+.field { position: absolute; inset: 0; }
+.player { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; width: 76px;
+  transition: left .5s var(--ease), top .5s var(--ease), opacity .3s var(--ease), transform .3s var(--ease); }
+.player.entering { opacity: 0; transform: translate(-50%, -38%) scale(.9); }
+.player.leaving { opacity: 0; transform: translate(-50%, -62%) scale(.9); }
+.player:hover .shirt { transform: translateY(-2px); }
+.player:active .shirt { transform: scale(.94); }
+.shirt { transition: transform .2s var(--ease); }
+.pname { margin-top: 2px; max-width: 76px; padding: 1px 6px; border-radius: 6px; background: #000; color: #fff; font-size: 11px; line-height: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pxp { font-size: 11px; line-height: 14px; color: var(--accent); font-weight: 600; }
+.armband { position: absolute; top: -2px; right: 14px; width: 17px; height: 17px; border-radius: 50%; background: #fff; color: #000; font-size: 10px; font-weight: 600; line-height: 17px; text-align: center; }
+.armband.vice { background: var(--raised-2); color: #fff; }
+.flag { position: absolute; top: -2px; left: 12px; padding: 0 4px; border-radius: 6px; background: var(--negative-bg); color: var(--negative); font-size: 10px; line-height: 15px; font-weight: 600; }
+.bench { display: flex; gap: 8px; margin-top: 12px; }
+.bench div { flex: 1; background: var(--raised); border-radius: 12px; padding: 8px; display: flex; align-items: center; gap: 6px; min-width: 0; }
+.bench span { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bench .shirt { flex: none; }
+@media (max-width: 480px) { .bench { display: grid; grid-template-columns: 1fr 1fr; } }
+
+/* expandable rows */
+.stack { display: grid; gap: var(--gap); }
+.row-card { overflow: hidden; }
+.row-head { width: 100%; display: grid; grid-template-columns: 1fr auto 20px; align-items: center; gap: 12px; padding: 16px var(--pad); text-align: left; min-height: 64px; }
+.row-head:hover { background: #151515; }
+.row-title { font-weight: 500; }
+.row-sub { color: var(--muted); font-size: 13px; }
+.row-val { font-size: 16px; font-weight: 500; text-align: right; }
+.row-val.hue { color: var(--accent); }
+.chev { transition: transform .3s var(--ease); color: var(--faint); }
+[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.expand { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .4s var(--ease); }
+.expand > div { overflow: hidden; }
+.expand.open { grid-template-rows: 1fr; }
+.expand .inner { padding: 0 var(--pad) var(--pad); }
+.expand .inner > * { opacity: 0; transform: translateY(8px); transition: opacity .3s var(--ease), transform .3s var(--ease); }
+.expand.open .inner > * { opacity: 1; transform: none; }
+.expand.open .inner > *:nth-child(2) { transition-delay: 60ms; } .expand.open .inner > *:nth-child(3) { transition-delay: 120ms; } .expand.open .inner > *:nth-child(4) { transition-delay: 180ms; }
+
+.move { background: var(--raised); border-radius: 14px; padding: 12px; margin-top: 8px; }
+.move-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.move-top .names { display: flex; align-items: center; gap: 6px; font-weight: 500; min-width: 0; }
+.move-top .out { color: var(--faint); text-decoration: line-through; }
+.gain { color: var(--accent); font-weight: 600; }
+.weeks { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 10px; }
+.wk { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; color: var(--faint); }
+.bars { display: flex; align-items: flex-end; gap: 3px; height: 44px; }
+.bars i { width: 8px; border-radius: 3px 3px 0 0; background: var(--raised-2); transform-origin: bottom; transition: transform .5s var(--ease); }
+.bars i.in { background: var(--accent); }
+.expand:not(.open) .bars i { transform: scaleY(0); }
+.why { color: var(--muted); font-size: 13px; line-height: 19px; margin-top: 12px; }
+.list { display: grid; gap: 2px; }
+.li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 9px 0; }
+.li .bar { grid-column: 1 / -1; height: 2px; background: var(--raised-2); border-radius: 2px; overflow: hidden; }
+.li .bar i { display: block; height: 100%; background: var(--muted); }
+.li:first-child .bar i { background: var(--accent); }
+.li small { color: var(--faint); font-size: 12px; }
+.chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.chip { background: var(--raised); border-radius: 12px; padding: 10px; font-size: 12px; color: var(--faint); }
+.chip strong { display: block; color: var(--text); font-weight: 500; font-size: 13px; }
+.chip.used strong { color: var(--faint); text-decoration: line-through; }
+.fdr { display: grid; grid-template-columns: 44px repeat(5, 1fr); gap: 4px; font-size: 11px; }
+.fdr .t { font-weight: 500; font-size: 12px; align-self: center; }
+.fdr .c { border-radius: 6px; text-align: center; padding: 5px 0; background: var(--raised); color: var(--muted); }
+.fdr .d1, .fdr .d2 { background: var(--accent-bg); color: var(--accent); }
+.fdr .d4, .fdr .d5 { background: var(--negative-bg); color: var(--negative); }
+.fdr .h { color: var(--faint); text-align: center; }
+.kv { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.kv div { background: var(--raised); border-radius: 12px; padding: 12px; color: var(--faint); font-size: 12px; }
+.kv strong { display: block; color: var(--text); font-size: 18px; font-weight: 500; margin-top: 2px; }
+.primary { height: 36px; padding: 0 16px; border-radius: 999px; background: #fff; color: #000; font-weight: 500; transition: transform .15s var(--ease); }
+.primary:active { transform: scale(.96); }
+.sheet { position: absolute; width: 240px; background: var(--raised-2); border-radius: 14px; padding: 12px; z-index: 5; box-shadow: 0 12px 28px rgba(0,0,0,.5);
+  opacity: 0; transform: translateY(-4px) scale(.98); pointer-events: none; transition: opacity .2s var(--ease), transform .2s var(--ease); }
+.sheet.show { opacity: 1; transform: none; pointer-events: auto; }
+.sheet-head { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.sheet-head span { display: block; color: var(--faint); font-size: 12px; }
+.sheet dl div { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; padding: 3px 0; }
+.sheet dt { color: var(--faint); } .sheet dd { text-align: right; }
+.foot { color: var(--faint); font-size: 12px; margin-top: 18px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0ms !important; } }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="top">
+    <span class="mark" aria-hidden="true"><svg viewBox="0 0 18 18"><rect x="2" y="2" width="14" height="14" rx="2" fill="none" stroke="#000" stroke-width="1.6"/><path d="M2 9h14M9 2v14" stroke="#000" stroke-width="1.6"/><circle cx="9" cy="9" r="2.6" fill="none" stroke="#000" stroke-width="1.6"/></svg></span>
+    <div class="brand">FPL Assistant <small id="team-name"></small></div>
+    <div class="deadline">GW<span id="gw"></span> deadline<strong class="num" id="countdown"></strong></div>
+  </header>
+
+  <div class="title">
+    <h1>Gameweek <span id="gw2"></span></h1>
+    <p class="finding" id="finding"></p>
+  </div>
+
+  <main class="grid">
+    <section class="card pitch-card" aria-label="Team on the pitch">
+      <div class="pitch-head">
+        <div class="seg" role="group" aria-label="Which team">
+          <span class="thumb" aria-hidden="true"></span>
+          <button aria-pressed="true" data-mode="mine">Your XI</button>
+          <button aria-pressed="false" data-mode="best">Best XI</button>
+        </div>
+        <div class="total"><div class="big num"><span id="total">0.0</span> <small>xP</small></div><div class="vs" id="total-vs"></div></div>
+      </div>
+      <div class="pitch">
+        <svg class="lines" viewBox="0 0 68 72" preserveAspectRatio="none" aria-hidden="true">
+          <g fill="none" stroke="#242424" stroke-width=".4"><rect x="2" y="2" width="64" height="68"/><path d="M2 36h64"/><circle cx="34" cy="36" r="7"/><rect x="18" y="2" width="32" height="12"/><rect x="18" y="58" width="32" height="12"/><rect x="27" y="2" width="14" height="5"/><rect x="27" y="65" width="14" height="5"/></g>
+        </svg>
+        <div class="field"></div>
+        <div class="sheet" role="dialog" aria-label="Player"></div>
+      </div>
+      <div class="bench" id="bench" aria-label="Bench"></div>
+    </section>
+
+    <div class="stack">
+      <section class="card row-card" data-card>
+        <button class="row-head" data-expand="x-moves"><span><span class="row-title">Your moves</span><br><span class="row-sub" id="moves-sub"></span></span><span class="row-val hue num" id="moves-val"></span><svg class="chev" width="16" height="16" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></button>
+        <div class="expand" id="x-moves"><div><div class="inner"><div id="moves"></div><p class="why" id="why"></p><div style="margin-top:14px"><button class="primary">Copy these transfers</button></div></div></div></div>
+      </section>
+      <section class="card row-card" data-card>
+        <button class="row-head" data-expand="x-cap"><span><span class="row-title">Captain</span><br><span class="row-sub" id="cap-sub"></span></span><span class="row-val num" id="cap-val"></span><svg class="chev" width="16" height="16" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></button>
+        <div class="expand" id="x-cap"><div><div class="inner"><div class="list" id="caps"></div></div></div></div>
+      </section>
+      <section class="card row-card" data-card>
+        <button class="row-head" data-expand="x-fix"><span><span class="row-title">Fixtures</span><br><span class="row-sub" id="fix-sub"></span></span><span class="row-val num" id="fix-val"></span><svg class="chev" width="16" height="16" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></button>
+        <div class="expand" id="x-fix"><div><div class="inner"><div class="fdr" id="fdr"></div></div></div></div>
+      </section>
+      <section class="card row-card" data-card>
+        <button class="row-head" data-expand="x-chips"><span><span class="row-title">Chips</span><br><span class="row-sub" id="chip-sub"></span></span><span class="row-val num" id="chip-val"></span><svg class="chev" width="16" height="16" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></button>
+        <div class="expand" id="x-chips"><div><div class="inner"><div class="chips" id="chips"></div></div></div></div>
+      </section>
+      <section class="card row-card" data-card>
+        <button class="row-head" data-expand="x-price"><span><span class="row-title">Price moves</span><br><span class="row-sub" id="price-sub"></span></span><span class="row-val num" id="price-val"></span><svg class="chev" width="16" height="16" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></button>
+        <div class="expand" id="x-price"><div><div class="inner"><div class="list" id="prices"></div></div></div></div>
+      </section>
+      <section class="card row-card" data-card>
+        <button class="row-head" data-expand="x-bank"><span><span class="row-title">Bank and transfers</span><br><span class="row-sub" id="bank-sub"></span></span><span class="row-val num" id="bank-val"></span><svg class="chev" width="16" height="16" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></button>
+        <div class="expand" id="x-bank"><div><div class="inner"><div class="kv" id="kv"></div></div></div></div>
+      </section>
+      <p class="foot">Mockup with a real snapshot from 26 Oct 2026. Tap any player for details.</p>
+    </div>
+  </main>
+</div>
+<script src="data.js"></script>
+<script src="shared.js"></script>
+<script>
+const D = window.FPL_DATA, M = D.mine, B = D.best;
+const $ = (id) => document.getElementById(id);
+$("team-name").textContent = M.team_name;
+$("gw").textContent = $("gw2").textContent = M.gameweek;
+countdown($("countdown"), M.deadline);
+$("finding").innerHTML = `${M.plan.moves.length} transfers on your free ones are worth <b>+${one(M.plan.gain)} xP</b> over GW${D.gameweeks[0]}–${D.gameweeks.at(-1)}. Captain ${D.captains[0].name}.`;
+
+const pitch = makePitch(document.querySelector(".pitch-card"), { onPick: playerSheet(document.querySelector(".sheet")) });
+const mineXp = M.plan.xp, bestXp = B.xp;
+function show(mode) {
+  const t = mode === "best" ? B : M;
+  pitch.render(t.lineup, t.captain, t.vice);
+  $("bench").innerHTML = t.bench.map((p) => `<div>${shirt(p.team, 22)}<span>${p.name}</span></div>`).join("");
+  countUp($("total"), mode === "best" ? bestXp : mineXp);
+  $("total-vs").textContent = mode === "best" ? `Best possible for £${(B.cost / 10).toFixed(1)}m · yours ${one(mineXp)}` : `After your moves · best possible ${one(bestXp)}`;
+  document.querySelectorAll(".seg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
+  const active = document.querySelector(`.seg button[data-mode="${mode}"]`), thumb = document.querySelector(".seg .thumb");
+  thumb.style.width = active.offsetWidth + "px"; thumb.style.transform = `translateX(${active.offsetLeft - 3}px)`;
+}
+document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => show(b.dataset.mode)));
+show("mine");
+
+// moves
+$("moves-sub").textContent = M.plan.moves.map((m) => m.in.name).join(", ");
+$("moves-val").textContent = `+${one(M.plan.gain)}`;
+const maxXp = Math.max(...M.plan.moves.flatMap((m) => [m.in.xp, m.out.xp]));
+$("moves").innerHTML = M.plan.moves.map((m) => `<div class="move"><div class="move-top"><span class="names"><span class="out">${m.out.name}</span> → ${m.in.name}</span><span class="gain num">+${one(m.gain)}</span></div>
+  <div class="weeks">${D.gameweeks.map((gw, i) => `<div class="wk"><div class="bars"><i style="height:${(m.out.xp / maxXp) * 44}px"></i><i class="in" style="height:${(m.in.xp / maxXp) * 44}px"></i></div>GW${gw}</div>`).join("")}</div></div>`).join("");
+$("why").textContent = M.plan.why;
+
+// captain
+const c0 = D.captains[0];
+$("cap-sub").textContent = `${c0.name} · ${c0.fixture}`;
+$("cap-val").textContent = one(c0.xp * 2);
+const capMax = c0.xp;
+$("caps").innerHTML = D.captains.map((c) => `<div class="li"><span>${c.name} <small>${c.team} · ${c.fixture}</small></span><span class="num">${one(c.xp * 2)}</span><span class="bar"><i style="width:${(c.xp / capMax) * 100}%"></i></span></div>`).join("");
+
+// fixtures
+const easy = D.fixtures.slice(0, 3).map((t) => t.team).join(", ");
+$("fix-sub").textContent = `Easiest runs: ${easy}`;
+$("fix-val").textContent = `${D.gameweeks.length} GWs`;
+$("fdr").innerHTML = `<span></span>${D.gameweeks.map((g) => `<span class="h">GW${g}</span>`).join("")}` +
+  D.fixtures.map((t) => `<span class="t">${t.team}</span>${t.cells.map((gw) => gw.length ? `<span class="c d${gw[0].d}">${gw.map((c) => c.home ? c.opp : c.opp.toLowerCase()).join(" ")}</span>` : `<span class="c">–</span>`).join("")}`).join("");
+
+// chips
+const open = M.chips.filter((c) => c.state === "available").length;
+$("chip-sub").textContent = open ? `${open} to play before GW19` : "First-half set played · next set from GW20";
+$("chip-val").textContent = `${open}/4`;
+$("chips").innerHTML = M.chips.map((c) => `<div class="chip ${c.state === "used" || c.state === "expired" ? "used" : ""}"><strong>${c.label}</strong>${c.state === "used" ? `Played GW${c.played}` : c.state === "upcoming" ? "From GW20" : "Available"}</div>`).join("");
+
+// prices
+const riser = [...D.movers].sort((a, b) => b.net - a.net)[0];
+$("price-sub").textContent = `Most bought: ${riser.name}`;
+$("price-val").textContent = `${D.movers.length}`;
+const netMax = Math.max(...D.movers.map((m) => Math.abs(m.net)));
+$("prices").innerHTML = D.movers.map((m) => `<div class="li"><span>${m.name} <small>${m.team} · ${money(m.price)}</small></span><span class="num">${m.net > 0 ? "+" : "−"}${Math.abs(m.net).toLocaleString("en-GB")}</span><span class="bar"><i style="width:${(Math.abs(m.net) / netMax) * 100}%"></i></span></div>`).join("");
+
+// bank
+$("bank-sub").textContent = `${M.ft} free transfers`;
+$("bank-val").textContent = money(M.bank);
+$("kv").innerHTML = `<div>In the bank<strong class="num">${money(M.bank)}</strong></div><div>Free transfers<strong class="num">${M.ft}</strong></div><div>Team value<strong class="num">${money(M.value)}</strong></div><div>After the moves<strong class="num">${money(M.plan.bank_after)}</strong></div>`;
+wireExpanders();
+</script>
+</body>
+</html>

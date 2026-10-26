@@ -1,13 +1,109 @@
 @import "tailwindcss";
 
+/* FPL's own palette, read from fantasy.premierleague.com's design tokens (DECISIONS.md D-016):
+   their purple scale for surfaces, their green on the data, their fixture-difficulty colours. */
 @theme {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --color-ground: #1e0021;   /* FPL mono p120 */
+  --color-surface: #28002b;  /* p110 */
+  --color-raised: #37003c;   /* p100: the FPL brand purple */
+  --color-raised-2: #41054b; /* p90 */
+  --color-line: #541e5d;     /* p80 */
+  --color-ink: #ffffff;
+  --color-muted: #d7ccd8;    /* p20 */
+  --color-faint: #af99b1;    /* p40 */
+  --color-accent: #00ff87;   /* FPL green: data, highlights, the main button */
+  --color-accent-ink: #37003c;
+  --color-negative: #ff1b54;
+  --color-warn: #ffab1b;
+
+  --color-d1: #375523;  --color-d1-ink: #ffffff;   /* FPL fixture difficulty 1-5 */
+  --color-d2: #01fc7a;  --color-d2-ink: #37003c;
+  --color-d3: #e7e7e7;  --color-d3-ink: #37003c;
+  --color-d4: #ff1b54;  --color-d4-ink: #37003c;
+  --color-d5: #80072d;  --color-d5-ink: #ffffff;
+
+  --color-pitch-a: #00843d;
+  --color-pitch-b: #008c41;
+
+  --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+  @apply bg-ground text-ink antialiased;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Expanding panels: the height animates through a 0fr -> 1fr grid row. */
+.expand {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.4s var(--ease-out-soft);
+}
+.expand > div {
+  overflow: hidden;
+}
+.expand.open {
+  grid-template-rows: 1fr;
+}
+.expand .reveal {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.3s var(--ease-out-soft), transform 0.3s var(--ease-out-soft);
+}
+.expand.open .reveal {
+  opacity: 1;
+  transform: none;
+}
+
+/* Pitch player cards, as on the FPL site: shirt on glass, a name bar and a fixture bar. */
+.player {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: var(--card-w, clamp(58px, 17.5vw, 72px));
+  aspect-ratio: 67 / 88;
+  border-radius: 6px;
+  border: 1px solid rgb(255 255 255 / 0.22);
+  background: rgb(255 255 255 / 0.1);
+  transition: left 0.5s var(--ease-out-soft), top 0.5s var(--ease-out-soft), transform 0.3s var(--ease-out-soft), background 0.2s;
+  animation: card-in 0.35s var(--ease-out-soft) both;
+}
+.player:hover {
+  background: rgb(255 255 255 / 0.2);
+}
+.player:active {
+  transform: translate(-50%, -50%) scale(0.96);
+}
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -40%) scale(0.9);
+  }
+}
+@media (min-width: 1024px) {
+  .pitch {
+    --card-w: 88px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation: none !important;
+  }
 }

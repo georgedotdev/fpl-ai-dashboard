@@ -183,6 +183,12 @@ export interface PickedPlayer {
   position: Position;
   team_short_name: string;
   xp: number;
+  fixtures: string[];
+  price: number;
+  status: string;
+  chance_of_playing_next_round: number | null;
+  news: string;
+  selected_by_percent: number;
 }
 
 export interface GameweekRecommendation {
@@ -302,6 +308,7 @@ export interface ChipRule {
 export interface Rules {
   season: string;
   planning_gameweek: number | null;
+  planning_deadline: string | null;
   squad_size: number;
   positions: Record<Position, number>;
   max_per_club: number;
@@ -327,4 +334,22 @@ export function getManualRecommendations(squad: ManualSquad, horizon: number): P
 
 export function getManualExplanation(squad: ManualSquad, horizon: number, plan: number): Promise<Explanation> {
   return post(`/manual/recommendations/explanation${query({ horizon, plan })}`, squad);
+}
+
+// --- best XI for the next gameweek ------------------------------------------------------
+
+export interface BestXI {
+  model: string;
+  gameweek: number;
+  budget: number;
+  cost: number;
+  expected_points: number;
+  lineup: PickedPlayer[];
+  bench: PickedPlayer[];
+  captain: PickedPlayer;
+  vice_captain: PickedPlayer;
+}
+
+export function getBestXI(): Promise<BestXI> {
+  return request("/best-xi");
 }

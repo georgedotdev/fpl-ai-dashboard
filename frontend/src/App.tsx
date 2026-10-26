@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import { getRules } from "./api";
+import { Countdown } from "./components/Countdown";
+import { useData } from "./hooks";
 import { BestPicksView } from "./components/BestPicksView";
 import { CaptaincyView } from "./components/CaptaincyView";
 import { FixturesView } from "./components/FixturesView";
@@ -28,26 +31,46 @@ export default function App() {
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
 
+  const rules = useData(getRules, []);
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 sm:py-10">
-      <header className="mb-4">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">FPL Assistant</h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Transfer, captain, bench and chip advice for your FPL team. No login, no password.
-        </p>
+    <div className="mx-auto max-w-[1240px] px-4 pb-10 lg:px-8">
+      <header className="flex h-[60px] items-center gap-3">
+        <span className="grid h-7 w-7 place-items-center rounded-lg bg-accent" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 18 18">
+            <rect x="2" y="2" width="14" height="14" rx="2" fill="none" stroke="#37003c" strokeWidth="1.6" />
+            <path d="M2 9h14M9 2v14" stroke="#37003c" strokeWidth="1.6" />
+            <circle cx="9" cy="9" r="2.6" fill="none" stroke="#37003c" strokeWidth="1.6" />
+          </svg>
+        </span>
+        <div className="font-semibold leading-tight">
+          FPL Assistant
+          <small className="block text-xs font-normal text-faint">No login, no password</small>
+        </div>
+        {rules.data?.planning_deadline && (
+          <div className="ml-auto text-right text-xs leading-4 text-faint">
+            GW{rules.data.planning_gameweek} deadline
+            <strong className="block text-sm font-semibold text-ink">
+              <Countdown iso={rules.data.planning_deadline} />
+            </strong>
+          </div>
+        )}
       </header>
 
-      <nav className="-mx-4 mb-6 overflow-x-auto border-b border-slate-200 px-4 dark:border-slate-800" aria-label="Sections">
-        <ul className="flex gap-1">
+      <h1 className="mt-3 text-[22px] font-bold leading-7">
+        {rules.data?.planning_gameweek ? `Gameweek ${rules.data.planning_gameweek}` : "FPL Assistant"}
+      </h1>
+      <p className="mt-0.5 text-sm text-muted">Transfer, captain, bench and chip advice for your FPL team.</p>
+
+      <nav className="-mx-4 my-5 overflow-x-auto px-4 [scrollbar-width:none]" aria-label="Sections">
+        <ul className="flex gap-1.5">
           {TABS.map((t) => (
             <li key={t.id}>
               <a
                 href={`#${t.id}`}
                 aria-current={tab === t.id ? "page" : undefined}
-                className={`block whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium ${
-                  tab === t.id
-                    ? "border-violet-600 text-violet-700 dark:text-violet-400"
-                    : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                className={`block whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
+                  tab === t.id ? "bg-accent text-accent-ink" : "bg-surface text-muted hover:bg-raised hover:text-ink"
                 }`}
               >
                 {t.label}

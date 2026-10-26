@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Option C · Pitch ladder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+/* Pitch ladder: one grass green at full strength only on small marks; its pale tints carry every area. */
+:root {
+  --ground: #f7faf8; --surface: #fff; --raised: #f1f4f2; --border: #e3e8e5; --rule: #eef1ef;
+  --text: #102018; --muted: #56635c; --faint: #66726b;
+  --accent: #1f7a3a; --accent-soft: #eaf5ee; --accent-track: #d3eadb; --accent-ink: #0f3d22;
+  --negative: #c4242a; --negative-soft: #ffedea;
+  --radius: 10px; --gap: 16px; --pad: 18px; --ease: cubic-bezier(.2, .8, .2, 1);
+}
+* { box-sizing: border-box; margin: 0; }
+body { background: var(--ground); color: var(--text); font: 14px/20px "DM Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+.num, .pxp { font-variant-numeric: tabular-nums; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+
+.app { display: grid; min-height: 100vh; }
+@media (min-width: 1024px) { .app { grid-template-columns: 228px 1fr; } }
+.side { display: none; }
+@media (min-width: 1024px) {
+  .side { display: flex; flex-direction: column; gap: 4px; padding: 20px 12px; border-right: 1px solid var(--border); position: sticky; top: 0; height: 100vh; }
+}
+.brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 18px; font-weight: 600; }
+.mark { width: 28px; height: 28px; border-radius: 7px; background: var(--accent); display: grid; place-items: center; }
+.nav a { display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; color: var(--muted); text-decoration: none; transition: background .2s var(--ease), color .2s; }
+.nav a:hover { background: var(--raised); color: var(--text); }
+.nav a[aria-current] { background: var(--accent-soft); color: var(--accent-ink); font-weight: 500; }
+.nav a[aria-current] svg { color: var(--accent); }
+.team-switch { margin-top: auto; padding: 10px; border-radius: 10px; background: var(--raised); font-size: 13px; }
+.team-switch small { display: block; color: var(--faint); font-size: 12px; }
+
+.main { padding: 0 16px 96px; min-width: 0; }
+@media (min-width: 1024px) { .main { padding: 24px 32px 48px; } }
+.mobile-top { display: flex; align-items: center; gap: 10px; height: 56px; }
+@media (min-width: 1024px) { .mobile-top { display: none; } }
+.titlebar { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 8px 0 16px; }
+h1 { font-size: 24px; line-height: 30px; font-weight: 700; }
+.sub { color: var(--muted); }
+.clock { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); font-weight: 500; }
+.clock i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+
+.strip { display: grid; grid-template-columns: repeat(2, 1fr); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: var(--gap); }
+@media (min-width: 640px) { .strip { grid-template-columns: repeat(4, 1fr); } }
+.strip > div { padding: 12px var(--pad); }
+.strip > div:not(:first-child) { border-left: 1px solid var(--border); }
+@media (max-width: 639px) { .strip > div:nth-child(3) { border-left: 0; } .strip > div:nth-child(n+3) { border-top: 1px solid var(--border); } }
+.strip span { color: var(--muted); font-size: 12px; }
+.strip strong { display: block; font-size: 22px; line-height: 28px; font-weight: 500; }
+.track { height: 6px; border-radius: 999px; background: var(--accent-track); margin-top: 6px; overflow: hidden; }
+.track i { display: block; height: 100%; background: var(--accent); border-radius: 999px; transform-origin: left; animation: grow .9s var(--ease) both; }
+@keyframes grow { from { transform: scaleX(0); } }
+
+.grid { display: grid; gap: var(--gap); }
+@media (min-width: 1100px) { .grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: start; } }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px var(--pad); }
+.card-head h2 { font-size: 16px; font-weight: 600; }
+.seg { display: inline-flex; background: var(--raised); border-radius: 8px; padding: 3px; position: relative; }
+.seg button { position: relative; z-index: 1; height: 28px; padding: 0 12px; border-radius: 6px; color: var(--muted); font-weight: 500; transition: color .2s; }
+.seg button[aria-pressed="true"] { color: var(--accent-ink); }
+.seg .thumb { position: absolute; top: 3px; bottom: 3px; background: #fff; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,.08); transition: transform .35s var(--ease), width .35s var(--ease); }
+.pitch-wrap { padding: 0 var(--pad) var(--pad); }
+.pitch { position: relative; aspect-ratio: 68 / 66; border-radius: 8px; overflow: hidden; background: repeating-linear-gradient(180deg, var(--accent-soft) 0 12.5%, #e1f0e6 12.5% 25%); }
+.pitch svg.lines { position: absolute; inset: 0; width: 100%; height: 100%; }
+.field { position: absolute; inset: 0; }
+.player { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; width: 76px;
+  transition: left .5s var(--ease), top .5s var(--ease), opacity .3s var(--ease), transform .3s var(--ease); }
+.player.entering { opacity: 0; transform: translate(-50%, -40%) scale(.9); }
+.player.leaving { opacity: 0; transform: translate(-50%, -60%) scale(.9); }
+.shirt { transition: transform .2s var(--ease); }
+.player:hover .shirt { transform: translateY(-2px); }
+.pname { margin-top: 2px; max-width: 76px; padding: 1px 6px; border-radius: 4px; background: var(--accent-ink); color: #fff; font-size: 11px; line-height: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pxp { margin-top: 1px; padding: 0 5px; border-radius: 4px; background: #fff; font-size: 11px; line-height: 15px; color: var(--accent-ink); font-weight: 600; }
+.armband { position: absolute; top: -2px; right: 14px; width: 17px; height: 17px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 10px; line-height: 17px; text-align: center; font-weight: 700; }
+.armband.vice { background: #fff; color: var(--accent-ink); }
+.flag { position: absolute; top: -2px; left: 12px; padding: 0 4px; border-radius: 4px; background: var(--negative-soft); color: var(--negative); font-size: 10px; line-height: 15px; font-weight: 600; }
+.bench { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.bench span { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px 3px 4px; border-radius: 999px; background: var(--raised); font-size: 12px; color: var(--muted); }
+
+.feed { display: grid; gap: var(--gap); }
+.dis { width: 100%; display: grid; grid-template-columns: 1fr auto 18px; align-items: center; gap: 12px; padding: 14px var(--pad); text-align: left; border-radius: var(--radius); transition: background .2s; }
+.dis:hover { background: #fbfcfb; }
+.dis .t { font-weight: 600; }
+.dis .s { display: block; color: var(--muted); font-size: 13px; font-weight: 400; }
+.pill { height: 24px; padding: 0 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); font-size: 12px; font-weight: 600; line-height: 24px; white-space: nowrap; }
+.pill.neutral { background: var(--raised); color: var(--muted); }
+.chev { color: var(--faint); transition: transform .3s var(--ease); }
+[aria-expanded="true"] .chev { transform: rotate(90deg); }
+.expand { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .4s var(--ease); }
+.expand > div { overflow: hidden; }
+.expand.open { grid-template-rows: 1fr; }
+.inner { padding: 0 var(--pad) var(--pad); }
+.inner > * { opacity: 0; transform: translateX(-6px); transition: opacity .3s var(--ease), transform .3s var(--ease); }
+.expand.open .inner > * { opacity: 1; transform: none; }
+.mv { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; padding: 10px 0; border-top: 1px solid var(--rule); }
+.mv .who s { color: var(--faint); }
+.mv .g { color: var(--accent); font-weight: 600; }
+.cmp { grid-column: 1 / -1; display: grid; gap: 4px; }
+.cmp div { display: grid; grid-template-columns: 62px 1fr 34px; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+.cmp .bar { height: 6px; border-radius: 999px; background: var(--raised); overflow: hidden; }
+.cmp .bar i { display: block; height: 100%; border-radius: 999px; background: #b9c4be; transform-origin: left; transition: transform .6s var(--ease); }
+.cmp .in .bar i { background: var(--accent); }
+.expand:not(.open) .cmp .bar i { transform: scaleX(0); }
+.why { margin-top: 10px; padding: 12px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink); font-size: 13px; line-height: 19px; }
+.btn { margin-top: 12px; height: 34px; padding: 0 14px; border-radius: 8px; background: var(--text); color: #fff; font-weight: 500; transition: transform .15s var(--ease); }
+.btn:active { transform: scale(.96); }
+.rows .r { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 8px 0; border-top: 1px solid var(--rule); }
+.rows .r small { color: var(--muted); font-size: 12px; }
+.rows .r .bar { grid-column: 1 / -1; height: 2px; background: var(--raised); }
+.rows .r .bar i { display: block; height: 100%; background: #9aa69f; }
+.rows .r:first-child .bar i { background: var(--accent); }
+.fdr { display: grid; grid-template-columns: 40px repeat(5, 1fr); gap: 3px; font-size: 11px; }
+.fdr .t { font-weight: 600; font-size: 12px; align-self: center; }
+.fdr .c { border-radius: 4px; padding: 5px 0; text-align: center; background: var(--raised); color: var(--muted); }
+.fdr .d1, .fdr .d2 { background: var(--accent-track); color: var(--accent-ink); }
+.fdr .d4, .fdr .d5 { background: var(--negative-soft); color: var(--negative); }
+.fdr .h { color: var(--muted); text-align: center; }
+.chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.chip { padding: 8px; border-radius: 8px; background: var(--raised); font-size: 12px; color: var(--muted); }
+.chip b { display: block; font-weight: 600; color: var(--text); }
+.chip.used b { text-decoration: line-through; color: var(--faint); }
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(4, 1fr); background: var(--surface); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom); }
+.tabbar a { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0 10px; color: var(--muted); font-size: 11px; text-decoration: none; }
+.tabbar a[aria-current] { color: var(--accent-ink); font-weight: 600; }
+.tabbar a[aria-current] svg { color: var(--accent); }
+@media (min-width: 1024px) { .tabbar { display: none; } }
+.sheet { position: absolute; width: 240px; background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 12px; z-index: 5; box-shadow: 0 10px 28px rgba(16,32,24,.14);
+  opacity: 0; transform: translateY(-4px); pointer-events: none; transition: opacity .2s var(--ease), transform .2s var(--ease); }
+.sheet.show { opacity: 1; transform: none; pointer-events: auto; }
+.sheet-head { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.sheet-head span { display: block; color: var(--muted); font-size: 12px; }
+.sheet dl div { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; padding: 3px 0; }
+.sheet dt { color: var(--muted); } .sheet dd { text-align: right; }
+.foot { color: var(--muted); font-size: 12px; margin-top: 16px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0ms !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <symbol id="i-home" viewBox="0 0 16 16"><path d="M2.5 7L8 2.5 13.5 7v6.5h-4v-4h-3v4h-4z" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="i-players" viewBox="0 0 16 16"><circle cx="8" cy="5" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3 14c.5-3 2.5-4.5 5-4.5s4.5 1.5 5 4.5" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="i-fix" viewBox="0 0 16 16"><rect x="2.5" y="3" width="11" height="10.5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M2.5 6.5h11M5.5 1.5v3M10.5 1.5v3" stroke="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="i-cap" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 6.2A2.6 2.6 0 1 0 10 9.8" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+</defs></svg>
+<div class="app">
+  <aside class="side" aria-label="Main">
+    <div class="brand"><span class="mark" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="1.5" fill="none" stroke="#fff" stroke-width="1.5"/><path d="M2 8h12" stroke="#fff" stroke-width="1.5"/><circle cx="8" cy="8" r="2" fill="none" stroke="#fff" stroke-width="1.5"/></svg></span>FPL Assistant</div>
+    <nav class="nav">
+      <a href="#" aria-current="page"><svg width="16" height="16"><use href="#i-home"/></svg>Home</a>
+      <a href="#"><svg width="16" height="16"><use href="#i-players"/></svg>Players</a>
+      <a href="#"><svg width="16" height="16"><use href="#i-fix"/></svg>Fixtures</a>
+      <a href="#"><svg width="16" height="16"><use href="#i-cap"/></svg>Captains</a>
+    </nav>
+    <div class="team-switch"><small>Team</small><span id="team-side"></span></div>
+  </aside>
+
+  <main class="main">
+    <div class="mobile-top"><span class="mark" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="1.5" fill="none" stroke="#fff" stroke-width="1.5"/><path d="M2 8h12" stroke="#fff" stroke-width="1.5"/><circle cx="8" cy="8" r="2" fill="none" stroke="#fff" stroke-width="1.5"/></svg></span><strong>FPL Assistant</strong></div>
+    <div class="titlebar">
+      <div><h1>Gameweek <span id="gw"></span></h1><p class="sub" id="sub"></p></div>
+      <span class="clock"><i aria-hidden="true"></i>Deadline in <span class="num" id="countdown"></span></span>
+    </div>
+
+    <section class="strip" aria-label="Your numbers">
+      <div><span>Plan worth</span><strong class="num" id="s-gain"></strong></div>
+      <div><span>Your XI vs best</span><strong class="num" id="s-ratio"></strong><div class="track"><i id="s-track"></i></div></div>
+      <div><span>Free transfers</span><strong class="num" id="s-ft"></strong></div>
+      <div><span>In the bank</span><strong class="num" id="s-bank"></strong></div>
+    </section>
+
+    <div class="grid">
+      <section class="card" aria-label="Team">
+        <div class="card-head"><h2>Team for GW<span id="gw2"></span></h2>
+          <div class="seg" role="group" aria-label="Which team"><span class="thumb" aria-hidden="true"></span><button aria-pressed="true" data-mode="mine">Your XI</button><button aria-pressed="false" data-mode="best">Best XI</button></div></div>
+        <div class="pitch-wrap">
+          <div class="pitch">
+            <svg class="lines" viewBox="0 0 68 66" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke="#fff" stroke-width=".6"><rect x="2" y="2" width="64" height="62"/><path d="M2 33h64"/><circle cx="34" cy="33" r="7"/><rect x="18" y="2" width="32" height="11"/><rect x="18" y="53" width="32" height="11"/></g></svg>
+            <div class="field"></div>
+            <div class="sheet" role="dialog" aria-label="Player"></div>
+          </div>
+          <div class="bench" id="bench" aria-label="Bench"></div>
+        </div>
+      </section>
+
+      <div class="feed">
+        <section class="card"><button class="dis" data-expand="x-moves"><span><span class="t">Transfers</span><span class="s" id="mv-s"></span></span><span class="pill num" id="mv-p"></span><svg class="chev" width="16" height="16" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></button>
+          <div class="expand" id="x-moves"><div><div class="inner"><div id="moves"></div><p class="why" id="why"></p><button class="btn">Copy these transfers</button></div></div></div></section>
+        <section class="card"><button class="dis" data-expand="x-cap"><span><span class="t">Captain</span><span class="s" id="cap-s"></span></span><span class="pill num" id="cap-p"></span><svg class="chev" width="16" height="16" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></button>
+          <div class="expand" id="x-cap"><div><div class="inner rows" id="caps"></div></div></div></section>
+        <section class="card"><button class="dis" data-expand="x-chips"><span><span class="t">Chips</span><span class="s" id="chip-s"></span></span><span class="pill neutral num" id="chip-p"></span><svg class="chev" width="16" height="16" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></button>
+          <div class="expand" id="x-chips"><div><div class="inner"><div class="chips" id="chips"></div></div></div></div></section>
+        <section class="card"><button class="dis" data-expand="x-fix"><span><span class="t">Fixtures</span><span class="s" id="fix-s"></span></span><span class="pill neutral">5 GWs</span><svg class="chev" width="16" height="16" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></button>
+          <div class="expand" id="x-fix"><div><div class="inner"><div class="fdr" id="fdr"></div></div></div></div></section>
+        <section class="card"><button class="dis" data-expand="x-price"><span><span class="t">Price moves</span><span class="s" id="pr-s"></span></span><span class="pill neutral num" id="pr-p"></span><svg class="chev" width="16" height="16" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></button>
+          <div class="expand" id="x-price"><div><div class="inner rows" id="prices"></div></div></div></section>
+        <p class="foot">Mockup with a real snapshot from 26 Oct 2026. Tap any player for details.</p>
+      </div>
+    </div>
+  </main>
+</div>
+<nav class="tabbar" aria-label="Main">
+  <a href="#" aria-current="page"><svg width="18" height="18"><use href="#i-home"/></svg>Home</a>
+  <a href="#"><svg width="18" height="18"><use href="#i-players"/></svg>Players</a>
+  <a href="#"><svg width="18" height="18"><use href="#i-fix"/></svg>Fixtures</a>
+  <a href="#"><svg width="18" height="18"><use href="#i-cap"/></svg>Captains</a>
+</nav>
+<script src="data.js"></script>
+<script src="shared.js"></script>
+<script>
+const D = window.FPL_DATA, M = D.mine, B = D.best, $ = (id) => document.getElementById(id);
+$("gw").textContent = $("gw2").textContent = M.gameweek;
+$("team-side").textContent = M.team_name;
+$("sub").textContent = `${M.team_name} · ${M.plan.moves.length} transfers suggested`;
+countdown($("countdown"), M.deadline);
+$("s-gain").textContent = `+${one(M.plan.gain)} xP`;
+$("s-ratio").textContent = `${one(M.plan.xp)} / ${one(B.xp)}`;
+$("s-track").style.width = `${(M.plan.xp / B.xp) * 100}%`;
+$("s-ft").textContent = M.ft; $("s-bank").textContent = money(M.bank);
+
+const pitch = makePitch(document.querySelector(".pitch-wrap"), { onPick: playerSheet(document.querySelector(".sheet")) });
+function show(mode) {
+  const t = mode === "best" ? B : M;
+  pitch.render(t.lineup, t.captain, t.vice);
+  $("bench").innerHTML = t.bench.map((p) => `<span>${shirt(p.team, 18)}${p.name}</span>`).join("");
+  document.querySelectorAll(".seg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
+  const a = document.querySelector(`.seg [data-mode="${mode}"]`), th = document.querySelector(".seg .thumb");
+  th.style.width = a.offsetWidth + "px"; th.style.transform = `translateX(${a.offsetLeft - 3}px)`;
+}
+document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => show(b.dataset.mode)));
+show("mine");
+
+$("mv-s").textContent = M.plan.moves.map((m) => `${m.out.name} → ${m.in.name}`).join(", ");
+$("mv-p").textContent = `+${one(M.plan.gain)} xP`;
+const mx = Math.max(...M.plan.moves.flatMap((m) => [m.in.xp, m.out.xp]));
+$("moves").innerHTML = M.plan.moves.map((m) => `<div class="mv"><span class="who"><s>${m.out.name}</s> → ${m.in.name}</span><span class="g num">+${one(m.gain)}</span>
+  <div class="cmp"><div><span>${m.out.name}</span><span class="bar"><i style="width:${(m.out.xp / mx) * 100}%"></i></span><span class="num">${one(m.out.xp)}</span></div>
+  <div class="in"><span>${m.in.name}</span><span class="bar"><i style="width:${(m.in.xp / mx) * 100}%"></i></span><span class="num">${one(m.in.xp)}</span></div></div></div>`).join("");
+$("why").textContent = M.plan.why;
+
+$("cap-s").textContent = `${D.captains[0].name} · ${D.captains[0].fixture}`;
+$("cap-p").textContent = `${one(D.captains[0].xp * 2)} xP`;
+$("caps").innerHTML = D.captains.map((c) => `<div class="r"><span>${c.name} <small>${c.team} · ${c.fixture}</small></span><span class="num">${one(c.xp * 2)}</span><span class="bar"><i style="width:${(c.xp / D.captains[0].xp) * 100}%"></i></span></div>`).join("");
+
+const avail = M.chips.filter((c) => c.state === "available").length;
+$("chip-s").textContent = avail ? `${avail} left in the first half` : "First set played; next set opens GW20";
+$("chip-p").textContent = `${avail}/4`;
+$("chips").innerHTML = M.chips.map((c) => `<div class="chip ${c.state === "used" ? "used" : ""}"><b>${c.label}</b>${c.state === "used" ? `GW${c.played}` : c.state === "upcoming" ? "GW20+" : "Ready"}</div>`).join("");
+
+$("fix-s").textContent = `Easiest: ${D.fixtures.slice(0, 3).map((t) => t.team).join(", ")}`;
+$("fdr").innerHTML = `<span></span>${D.gameweeks.map((g) => `<span class="h">${g}</span>`).join("")}` + D.fixtures.map((t) => `<span class="t">${t.team}</span>${t.cells.map((gw) => gw.length ? `<span class="c d${gw[0].d}">${gw.map((c) => c.home ? c.opp : c.opp.toLowerCase()).join(" ")}</span>` : `<span class="c">–</span>`).join("")}`).join("");
+
+const bought = [...D.movers].sort((a, b) => b.net - a.net)[0], nm = Math.max(...D.movers.map((m) => Math.abs(m.net)));
+$("pr-s").textContent = `Most bought: ${bought.name}`; $("pr-p").textContent = D.movers.length;
+$("prices").innerHTML = D.movers.map((m) => `<div class="r"><span>${m.name} <small>${m.team} · ${money(m.price)}</small></span><span class="num">${m.net > 0 ? "+" : "−"}${Math.abs(m.net).toLocaleString("en-GB")}</span><span class="bar"><i style="width:${(Math.abs(m.net) / nm) * 100}%"></i></span></div>`).join("");
+wireExpanders();
+</script>
+</body>
+</html>

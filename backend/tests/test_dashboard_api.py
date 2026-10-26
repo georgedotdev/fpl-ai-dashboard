@@ -124,3 +124,17 @@ def test_rules_endpoint_lists_shape_and_open_chips(api):  # noqa: F811
     assert body["positions"] == {"GKP": 2, "DEF": 5, "MID": 5, "FWD": 3} and body["max_per_club"] == 3
     open_now = {c["key"] for c in body["chips"] if c["open_now"]}
     assert open_now == {"wildcard-1", "freehit-1", "bboost-1", "3xc-1"}
+
+
+def test_best_xi_is_a_legal_squad_within_budget(api):  # noqa: F811
+    client, _ = api
+    body = client.get("/best-xi").json()
+    assert body["gameweek"] == 9 and len(body["lineup"]) == 11 and len(body["bench"]) == 4
+    squad = body["lineup"] + body["bench"]
+    assert [p["position"] for p in squad].count("GKP") == 2
+    assert body["cost"] <= body["budget"] == 1000
+    clubs = [p["team_short_name"] for p in squad]
+    assert max(clubs.count(c) for c in clubs) <= 3
+    assert body["captain"]["player_id"] in {p["player_id"] for p in body["lineup"]}
+    assert body["bench"][0]["position"] == "GKP"
+    assert {"price", "status", "news", "fixtures"} <= set(body["lineup"][0])

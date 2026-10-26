@@ -1,10 +1,10 @@
 import type { ChipStatus } from "../api";
 
 const STATE_STYLES: Record<ChipStatus["state"], string> = {
-  available: "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200",
-  upcoming: "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300",
-  used: "border-slate-200 bg-white text-slate-400 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-500",
-  expired: "border-slate-200 bg-white text-slate-400 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-500",
+  available: "border-accent/50 bg-accent/10 text-accent",
+  upcoming: "border-transparent bg-raised-2 text-muted",
+  used: "border-transparent bg-raised text-faint",
+  expired: "border-transparent bg-raised text-faint",
 };
 
 function detail(chip: ChipStatus): string {
@@ -30,7 +30,7 @@ export function Chips({ chips }: { chips: ChipStatus[] }) {
         const inHalf = chips.filter((c) => c.half === half);
         return (
           <div key={half}>
-            <h3 className="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+            <h3 className="mb-2 text-xs font-medium text-faint">
               {half === 1 ? "First" : "Second"} half · GW{Math.min(...inHalf.map((c) => c.window_start))}–
               {Math.max(...inHalf.map((c) => c.window_end))}
             </h3>
