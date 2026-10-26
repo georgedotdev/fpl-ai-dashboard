@@ -24,14 +24,23 @@ jobs:
     env:
       FPLAI_DATABASE_URL: ${{ secrets.FPLAI_DATABASE_URL }}
     steps:
+      - name: Skip until a database is configured
+        if: env.FPLAI_DATABASE_URL == ''
+        working-directory: .  # backend/ doesn't exist before checkout
+        run: echo "No FPLAI_DATABASE_URL secret yet (see README, Deploy). Skipping ingest."
       - uses: actions/checkout@v4
+        if: env.FPLAI_DATABASE_URL != ''
       - uses: actions/setup-python@v5
+        if: env.FPLAI_DATABASE_URL != ''
         with:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: backend/pyproject.toml
       - run: pip install -e .
+        if: env.FPLAI_DATABASE_URL != ''
       - name: Apply database migrations
+        if: env.FPLAI_DATABASE_URL != ''
         run: alembic upgrade head
       - name: Ingest
+        if: env.FPLAI_DATABASE_URL != ''
         run: python -m app.ingest.run
