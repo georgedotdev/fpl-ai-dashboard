@@ -60,6 +60,56 @@ Open http://localhost:5173 and enter a team ID: it's the number in the address o
 
 Tests: `cd backend && .venv/Scripts/pytest`.
 
+## Deploy (free: Cloud Run, Cloudflare Pages, Neon, GitHub Actions)
+
+The hosted site runs the same predictions and optimizer as a local run. The one difference is the "Why" text: it comes from the templates, because there's no local language model on the server (see D-018).
+
+| Part | Where | Cost |
+|---|---|---|
+| API | Google Cloud Run, built from `backend/Dockerfile` | Free allowance; scales to zero when idle |
+| Website | Cloudflare Pages, built from `frontend/` | Free |
+| Database | Neon Postgres | Free plan |
+| Data refresh | GitHub Actions (`.github/workflows/ingest.yml`) | Free |
+
+The first visit after a quiet spell takes several seconds while the API starts up; after that it's fast.
+
+### 1. Database (Neon)
+
+1. Create a project at neon.tech (a region near the API, e.g. London or Frankfurt).
+2. Copy its connection string (`postgresql://…?sslmode=require`).
+3. In this GitHub repo: Settings → Secrets and variables → Actions → New repository secret, name `FPLAI_DATABASE_URL`, value the connection string. The scheduled data refresh starts working from its next run (or run "Ingest FPL data" by hand from the Actions tab).
+
+### 2. API (Cloud Run)
+
+1. Create a Google Cloud project, and add a billing account (required even within the free allowance).
+2. **Set a budget alert first:** Billing → Budgets & alerts → a £1 budget with an email alert.
+3. Cloud Run → Create service → "Continuously deploy from a repository" → connect this GitHub repo, branch `main`, build type **Dockerfile**, source location `/backend/Dockerfile`.
+4. Settings:
+   - Region: `europe-west2` (London).
+   - Authentication: **Allow unauthenticated invocations** (it's a public website).
+   - Billing: **request-based** (CPU only while handling requests). Minimum instances `0`, maximum instances `1`.
+   - Memory `1 GiB`, CPU `1`, request timeout `60` seconds.
+   - Variables:
+     - `FPLAI_DATABASE_URL` = the Neon connection string
+     - `FPLAI_CORS_ORIGINS` = `["https://<your-project>.pages.dev"]` (fill in after step 3)
+     - `FPLAI_CORS_ORIGIN_REGEX` = `^https://([a-z0-9-]+\.)?<your-project>\.pages\.dev$` (so Cloudflare preview links work too)
+5. Deploy, then open `https://<service-url>/health`: it should report `"database": "ok"`. Every push to `main` now redeploys the API.
+
+### 3. Website (Cloudflare Pages)
+
+1. Cloudflare dashboard → Workers & Pages → Create → Pages → connect this GitHub repo.
+2. Build settings:
+   - Root directory: `frontend`
+   - Build command: `npm run build`
+   - Output directory: `dist`
+   - Environment variable: `VITE_API_URL` = the Cloud Run service URL (no trailing slash)
+3. Deploy. Every push to `main` now redeploys the site.
+4. Put the `*.pages.dev` address into the API's `FPLAI_CORS_ORIGINS` (step 2) and redeploy the API.
+
+### Running it locally with your own model
+
+Nothing changes for local runs. Put `FPLAI_LOCAL_MODEL=llama3.2:3b` (or any model you've pulled with Ollama) in `backend/.env`, start Ollama, and run the API as in "Run it locally": the "Why" text is then written by your model. The hosted site never sets it.
+
 ## Layout
 
 ```

@@ -2,11 +2,13 @@
 
 import hashlib
 import time
+from collections import deque
 from datetime import datetime
 from functools import lru_cache
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, HTTPException, Path, Query
+from fastapi import Depends, FastAPI, HTTPException, Path, Query, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy import select, text
@@ -41,9 +43,35 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
+    allow_origin_regex=settings.cors_origin_regex,
     allow_methods=["GET", "PATCH", "POST"],
     allow_headers=["Content-Type"],
 )
+
+# Per-visitor rate limit on the endpoints that run the optimizer. In memory, so each server
+# instance counts on its own; with Cloud Run capped at one instance that's the whole limit.
+RATE_LIMITED_PREFIXES = ("/recommendations", "/manual", "/best-xi")
+_recent_requests: dict[str, deque[float]] = {}
+
+
+@app.middleware("http")
+async def rate_limit(request: Request, call_next):
+    if request.method != "OPTIONS" and request.url.path.startswith(RATE_LIMITED_PREFIXES):
+        visitor = request.client.host if request.client else "unknown"
+        now = time.monotonic()
+        window = _recent_requests.setdefault(visitor, deque())
+        while window and window[0] < now - 60:
+            window.popleft()
+        if len(window) >= settings.rate_limit_per_minute:
+            return JSONResponse(
+                {"detail": "Too many requests from you in the last minute. Try again shortly."},
+                status_code=429,
+                headers={"Retry-After": "60"},
+            )
+        window.append(now)
+        if len(_recent_requests) > 10_000:  # forget old visitors rather than grow forever
+            _recent_requests.clear()
+    return await call_next(request)
 
 
 @lru_cache

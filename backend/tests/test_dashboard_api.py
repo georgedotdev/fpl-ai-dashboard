@@ -146,3 +146,17 @@ def test_recommendations_include_the_current_squad_in_slot_order(api):  # noqa: 
     assert [p["player_id"] for p in body["current"]] == list(range(1, 16))
     assert body["current_captain"] == 13 and body["current_vice_captain"] == 9
     assert all("xp" in p and "fixtures" in p for p in body["current"])
+
+
+def test_heavy_endpoints_are_rate_limited_per_visitor(api, monkeypatch):  # noqa: F811
+    from app import main
+
+    client, _ = api
+    monkeypatch.setattr(main.settings, "rate_limit_per_minute", 2)
+    main._recent_requests.clear()
+    assert client.get("/best-xi").status_code == 200
+    assert client.get("/best-xi").status_code == 200
+    limited = client.get("/best-xi")
+    assert limited.status_code == 429 and limited.headers["Retry-After"] == "60"
+    assert client.get("/players?limit=1").status_code == 200  # light endpoints aren't limited
+    main._recent_requests.clear()

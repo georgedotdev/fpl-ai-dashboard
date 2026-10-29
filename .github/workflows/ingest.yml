@@ -28,9 +28,9 @@ jobs:
         if: env.FPLAI_DATABASE_URL == ''
         working-directory: .  # backend/ doesn't exist before checkout
         run: echo "No FPLAI_DATABASE_URL secret yet (see README, Deploy). Skipping ingest."
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: env.FPLAI_DATABASE_URL != ''
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         if: env.FPLAI_DATABASE_URL != ''
         with:
           python-version: "3.12"

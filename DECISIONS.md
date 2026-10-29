@@ -326,3 +326,29 @@ The home screen is laid out by screen size (one set of data and boxes, three arr
 - **Phone:** the team, then the transfers, then four quick figures, then the rest as rows that expand. The reasons and notes fold behind toggles, and the section tabs move to a bottom bar within thumb reach.
 
 Boxes adapt to their own width (container queries), so the same box works in a narrow side column and a wide one.
+
+---
+
+## D-018: Hosting on free tiers (Cloud Run, Cloudflare Pages, Neon)
+
+- **Date:** 2026-10-29
+- **Status:** Decided by the owner (closes spec §8.2)
+
+**Decision.** For now the site is for showing friends, so it runs on free tiers:
+
+- **API:** Google Cloud Run, from `backend/Dockerfile`; request-based billing, 0 to 1 instances, deployed from `main` by Cloud Build.
+- **Website:** Cloudflare Pages.
+- **Database:** Neon (D-004).
+- **Data refresh:** GitHub Actions (D-001).
+
+The steps are in the README's Deploy section.
+
+**Why not the earlier choice (an always-on paid API).** D-001 turned Cloud Run down because a cold start breaks the portfolio goal of "results within a few seconds" for a recruiter. For a site shown to friends, a slower first visit after a quiet spell is an acceptable price for paying nothing. Moving to an always-on host later needs no code change: the same container runs anywhere.
+
+**What this means.**
+
+- **No language model on the server.** The hosted site writes the "Why" text from templates; local runs keep using your own model (`FPLAI_LOCAL_MODEL` in `backend/.env`). Predictions, plans and the Best XI are identical either way, since the model only describes decisions.
+- **Abuse protection:** a per-visitor limit of 30 requests a minute on the optimizer endpoints (recommendations, hand-entered squads, Best XI), plus Cloud Run's one-instance cap and a budget alert.
+- **Schema setup:** the container runs the database migrations when it starts (`FPLAI_RUN_MIGRATIONS=1`).
+- **CI builds the container** on every push, so a broken image shows up before a deploy.
+- **The first deploy must check that FPL answers requests from Google's servers.** FPL is known to block some cloud addresses.

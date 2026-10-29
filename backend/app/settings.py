@@ -18,6 +18,13 @@ class Settings(BaseSettings):
     fpl_min_interval_s: float = 0.2
 
     cors_origins: list[str] = ["http://localhost:5173"]
+    # Also allow origins matching this pattern, e.g. Cloudflare Pages preview links:
+    # ^https://([a-z0-9-]+\.)?fpl-ai-dashboard\.pages\.dev$
+    cors_origin_regex: str | None = None
+
+    # Requests per visitor per minute to the endpoints that run the optimizer
+    # (recommendations, hand-entered squads, best XI). Protects a small free server.
+    rate_limit_per_minute: int = 30
 
     # Which prediction brain feeds the optimizer and dashboard (see app/prediction).
     predictor: str = "baseline-form-fixtures"
